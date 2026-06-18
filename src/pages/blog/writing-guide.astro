@@ -1,0 +1,93 @@
+---
+import { site } from "../../data/site";
+import "../../styles/global.css";
+import "../../styles/blog-features.css";
+
+const base = import.meta.env.BASE_URL;
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Blog writing guide and frontmatter template." />
+    <title>Writing Guide | {site.brand.name}</title>
+  </head>
+  <body style={backgroundStyle}>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="soft-wash" aria-hidden="true"></div>
+
+    <main class="blog-shell panel">
+      <a class="back-link" href={withBase("blog/")}>Back to blog</a>
+      <header class="blog-header">
+        <p>WRITING GUIDE</p>
+        <h1>How to write a post</h1>
+        <span>Copy this structure into a new Markdown file under <code>src/content/blog</code>.</span>
+      </header>
+
+      <section class="writing-guide-grid">
+        <article class="guide-card article-body">
+          <h2>Frontmatter template</h2>
+          <pre><code>---
+title: "文章标题"
+description: "文章简介，会显示在列表和搜索里"
+date: "2026-06-18"
+updated: "2026-06-18"
+category: "Study"
+series: "Astro Website Log"
+tags: ["Astro", "Blog", "Learning"]
+image: "assets/example-cover.jpg"
+lang: "zh-CN"
+pinned: false
+draft: false
+---
+
+## 第一部分
+
+正文内容。
+
+> [!NOTE]
+> 这是一个提示框。
+
+```js
+console.log("代码块可以复制");
+```
+</code></pre>
+        </article>
+
+        <article class="guide-card article-body">
+          <h2>Fields</h2>
+          <ul>
+            <li><code>title</code>: 文章标题，必填。</li>
+            <li><code>description</code>: 摘要，必填。</li>
+            <li><code>date</code>: 发布时间，必填。</li>
+            <li><code>updated</code>: 更新时间，可选。</li>
+            <li><code>category</code>: 分类，不写会归到 General。</li>
+            <li><code>series</code>: 系列文章名，可选。适合写多篇连续教程。</li>
+            <li><code>tags</code>: 标签列表。</li>
+            <li><code>image</code>: 封面图路径，可选。建议放在 <code>public/assets/</code>。</li>
+            <li><code>pinned</code>: 是否置顶。</li>
+            <li><code>draft</code>: 草稿。设为 <code>true</code> 时不会发布。</li>
+          </ul>
+        </article>
+
+        <article class="guide-card article-body">
+          <h2>Callouts</h2>
+          <p>文章里可以写 GitHub 风格提示框：</p>
+          <pre><code>&gt; [!NOTE]
+&gt; 普通说明。
+
+&gt; [!TIP]
+&gt; 小技巧。
+
+&gt; [!WARNING]
+&gt; 重要提醒。
+</code></pre>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
