@@ -1,0 +1,112 @@
+---
+import { site } from "../data/site";
+import "../styles/global.css";
+import "../styles/blog-features.css";
+
+const base = import.meta.env.BASE_URL;
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Search blog posts." />
+    <title>Search | {site.brand.name}</title>
+  </head>
+  <body style={backgroundStyle}>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="soft-wash" aria-hidden="true"></div>
+
+    <main class="blog-shell panel" data-search-root data-search-url={withBase("search-data.json")} data-base={base}>
+      <a class="back-link" href={withBase("blog/")}>Back to blog</a>
+      <header class="blog-header">
+        <p>SEARCH</p>
+        <h1>Search posts</h1>
+        <span>Search title, description, tags, category, and article excerpt.</span>
+      </header>
+
+      <input class="search-box" id="search-box" type="search" placeholder="Type keywords..." autocomplete="off" />
+      <section class="search-results" id="search-results" aria-live="polite"></section>
+    </main>
+
+    <script is:inline>
+      const root = document.querySelector("[data-search-root]");
+      const input = document.getElementById("search-box");
+      const results = document.getElementById("search-results");
+      const base = root?.dataset.base || "/";
+      const searchUrl = root?.dataset.searchUrl || `${base}search-data.json`;
+      let posts = [];
+
+      const withBase = (path) => `${base}${String(path).replace(/^\/+/, "")}`;
+      const normalize = (value) => String(value || "").toLowerCase();
+
+      function render(items, query) {
+        results.replaceChildren();
+
+        if (!query) {
+          const empty = document.createElement("p");
+          empty.className = "search-empty";
+          empty.textContent = "输入关键词后会显示匹配文章。";
+          results.appendChild(empty);
+          return;
+        }
+
+        if (items.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "search-empty";
+          empty.textContent = "没有找到匹配文章。";
+          results.appendChild(empty);
+          return;
+        }
+
+        items.forEach((post) => {
+          const card = document.createElement("article");
+          card.className = "search-result-card";
+
+          const title = document.createElement("a");
+          title.className = "post-title-link";
+          title.href = withBase(post.url);
+          title.textContent = post.title;
+
+          const meta = document.createElement("small");
+          meta.textContent = `${post.category} · ${post.reading}`;
+
+          const desc = document.createElement("p");
+          desc.textContent = post.description || post.excerpt || "";
+
+          card.append(title, meta, desc);
+          results.appendChild(card);
+        });
+      }
+
+      fetch(searchUrl)
+        .then((response) => response.json())
+        .then((data) => {
+          posts = Array.isArray(data) ? data : [];
+          render([], "");
+        })
+        .catch(() => {
+          results.textContent = "Search index failed to load.";
+        });
+
+      input?.addEventListener("input", () => {
+        const query = normalize(input.value).trim();
+        const terms = query.split(/\s+/).filter(Boolean);
+        const matches = posts.filter((post) => {
+          const haystack = normalize([
+            post.title,
+            post.description,
+            post.category,
+            ...(post.tags || []),
+            post.excerpt,
+          ].join(" "));
+          return terms.every((term) => haystack.includes(term));
+        });
+        render(matches, query);
+      });
+    </script>
+  </body>
+</html>

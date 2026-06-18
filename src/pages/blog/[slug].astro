@@ -1,10 +1,12 @@
 ---
 import { getCollection, render } from "astro:content";
 import { site } from "../../data/site";
+import { formatDate, getCategory, getReadingStats, isPublished, slugifyTaxonomy } from "../../lib/blog";
 import "../../styles/global.css";
+import "../../styles/blog-features.css";
 
 export async function getStaticPaths() {
-  const posts = (await getCollection("blog")).filter((post) => !post.data.draft);
+  const posts = (await getCollection("blog")).filter(isPublished);
 
   return posts.map((post) => ({
     params: { slug: post.id },
@@ -13,15 +15,14 @@ export async function getStaticPaths() {
 }
 
 const { post } = Astro.props;
-const { Content } = await render(post);
+const { Content, headings } = await render(post);
+const toc = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
+const stats = getReadingStats(post);
+const category = getCategory(post);
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
 const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
-const formattedDate = new Intl.DateTimeFormat("en", {
-  year: "numeric",
-  month: "short",
-  day: "2-digit",
-}).format(post.data.date);
+const formattedDate = formatDate(post.data.date);
 ---
 
 <!doctype html>
@@ -36,21 +37,64 @@ const formattedDate = new Intl.DateTimeFormat("en", {
     <div class="backdrop" aria-hidden="true"></div>
     <div class="soft-wash" aria-hidden="true"></div>
 
-    <main class="article-shell panel">
+    <main class="article-shell wide panel">
       <a class="back-link" href={withBase("blog/")}>Back to blog</a>
-      <article>
-        <header class="article-header">
-          <time datetime={post.data.date.toISOString()}>{formattedDate}</time>
-          <h1>{post.data.title}</h1>
-          <p>{post.data.description}</p>
-          <div class="post-tags">
-            {post.data.tags.map((tag) => <span>{tag}</span>)}
+      <div class="article-layout">
+        <article class="article-card">
+          <header class="article-header">
+            <time datetime={post.data.date.toISOString()}>{formattedDate}</time>
+            <h1>{post.data.title}</h1>
+            <p>{post.data.description}</p>
+            <div class="article-meta">
+              <a class="meta-pill" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+              <span class="meta-pill">{stats.label}</span>
+              {post.data.pinned && <span class="meta-pill">Pinned</span>}
+            </div>
+            <div class="article-tags">
+              {post.data.tags.map((tag) => (
+                <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
+              ))}
+            </div>
+          </header>
+          <div class="article-body">
+            <Content />
           </div>
-        </header>
-        <div class="article-body">
-          <Content />
-        </div>
-      </article>
+        </article>
+
+        {toc.length > 0 && (
+          <aside class="toc-panel" aria-label="Table of contents">
+            <strong>Contents</strong>
+            {toc.map((heading) => (
+              <a class={`depth-${heading.depth}`} href={`#${heading.slug}`}>{heading.text}</a>
+            ))}
+          </aside>
+        )}
+      </div>
     </main>
+
+    <script is:inline>
+      document.querySelectorAll(".article-body pre").forEach((pre) => {
+        if (pre.querySelector(".copy-code-button")) return;
+        const code = pre.querySelector("code");
+        if (!code) return;
+
+        const button = document.createElement("button");
+        button.className = "copy-code-button";
+        button.type = "button";
+        button.textContent = "Copy";
+        button.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(code.textContent || "");
+            button.textContent = "Copied";
+            window.setTimeout(() => {
+              button.textContent = "Copy";
+            }, 1200);
+          } catch {
+            button.textContent = "Failed";
+          }
+        });
+        pre.appendChild(button);
+      });
+    </script>
   </body>
 </html>

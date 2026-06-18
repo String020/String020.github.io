@@ -1,0 +1,59 @@
+---
+import { getCollection } from "astro:content";
+import { site } from "../../data/site";
+import { formatDate, getCategory, groupPostsByYear, isPublished, slugifyTaxonomy, sortPosts } from "../../lib/blog";
+import "../../styles/global.css";
+import "../../styles/blog-features.css";
+
+const posts = sortPosts((await getCollection("blog")).filter(isPublished));
+const groups = groupPostsByYear(posts);
+const years = Object.keys(groups).sort((a, b) => Number(b) - Number(a));
+const base = import.meta.env.BASE_URL;
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Blog archive grouped by year." />
+    <title>Archive | {site.brand.name}</title>
+  </head>
+  <body style={backgroundStyle}>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="soft-wash" aria-hidden="true"></div>
+
+    <main class="blog-shell panel">
+      <a class="back-link" href={withBase("blog/")}>Back to blog</a>
+      <header class="blog-header">
+        <p>ARCHIVE</p>
+        <h1>All writing by year</h1>
+        <span>{posts.length} published post{posts.length === 1 ? "" : "s"}.</span>
+      </header>
+
+      {years.map((year) => (
+        <section class="archive-year" aria-label={`Posts from ${year}`}>
+          <h2>{year}</h2>
+          <div class="archive-list">
+            {groups[year].map((post) => {
+              const category = getCategory(post);
+              return (
+                <article class="archive-item">
+                  <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+                  <div>
+                    <a class="post-title-link" href={withBase(`blog/${post.id}/`)}>{post.data.title}</a>
+                    <div class="post-meta-line">
+                      <a class="post-category" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </section>
+      ))}
+    </main>
+  </body>
+</html>
