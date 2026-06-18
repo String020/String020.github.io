@@ -436,6 +436,7 @@ a {
 .stat,
 .focus-panel,
 .todo-panel,
+.music-panel,
 .project-item,
 .skill-item,
 .note-card,
@@ -478,6 +479,7 @@ a {
 
 .focus-panel,
 .todo-panel,
+.music-panel,
 .skill-item,
 .note-card {
   padding: 20px;
@@ -522,6 +524,39 @@ a {
   color: var(--muted);
   margin: 0;
   padding-left: 20px;
+}
+
+.music-panel {
+  align-items: center;
+  display: grid;
+  gap: 14px;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 330px);
+  min-height: 128px;
+}
+
+.music-panel span {
+  color: var(--muted);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 820;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.music-panel h3 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.music-panel iframe {
+  background: rgba(247, 246, 241, 0.22);
+  border: 1px solid rgba(23, 23, 23, 0.08);
+  border-radius: 10px;
+  display: block;
+  height: 86px;
+  max-width: 100%;
+  width: 100%;
 }
 
 .project-list {
