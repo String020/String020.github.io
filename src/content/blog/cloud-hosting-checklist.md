@@ -3,6 +3,7 @@ title: "Cloud Hosting Checklist"
 description: "Small notes for turning the prototype into a published personal website."
 date: "2026-06-17"
 tags: ["github-pages", "astro"]
+category: "Hosting"
 ---
 
 Before publishing the site, check these items:

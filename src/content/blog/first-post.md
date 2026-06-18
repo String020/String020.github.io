@@ -3,6 +3,8 @@ title: "First Blog Note"
 description: "A placeholder post showing how Markdown blog entries work in this Astro site."
 date: "2026-06-18"
 tags: ["website", "notes"]
+category: "Website"
+pinned: true
 ---
 
 This is the first Markdown blog post.

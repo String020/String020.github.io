@@ -13,11 +13,10 @@ Most visible text lives there:
 - brand name and initials
 - profile name, summary, quick links
 - dashboard stats
-- project cards
-- skill cards
-- note cards
-- contact links
 - top navigation labels
+- portal panels such as Blog, Archive, My, Network, Build, and System
+- generated feature pages such as `anime`, `diary`, `friends`, `projects`, and `skills`
+- project cards, skill cards, side widgets, and planned system functions
 
 The visual style lives here:
 
@@ -41,6 +40,8 @@ title: "My Post Title"
 description: "One short summary."
 date: "2026-06-18"
 tags: ["study", "project"]
+category: "Study"
+pinned: false
 ---
 
 Write your post here.
@@ -58,17 +59,70 @@ To hide a draft from the site:
 draft: true
 ```
 
+Optional fields inspired by Mizuki-style blog frontmatter:
+
+```md
+published: "2026-06-18" # alternative to date
+updated: "2026-06-19"
+image: "./cover.jpg"
+category: "Frontend"
+pinned: true
+comment: false
+lang: "en"
+```
+
 ## Add Or Remove A Panel
 
 For small changes, edit `src/data/site.ts`.
 
-For a new top navigation page, edit:
+For a new top navigation page, edit both:
 
 ```txt
+src/data/site.ts
 src/pages/index.astro
 ```
 
 The slide interaction now counts pages automatically, so you do not need to edit CSS percentages.
+
+## Add Or Remove A Feature Page
+
+Generated feature pages live in:
+
+```txt
+src/data/site.ts
+```
+
+Edit the `featurePages` array. Each item becomes a route:
+
+```txt
+slug: "anime" -> /anime/
+slug: "friends" -> /friends/
+```
+
+The shared page template is:
+
+```txt
+src/pages/[section].astro
+```
+
+You usually do not need to edit it unless the page needs custom behavior.
+
+## Current Function Map
+
+The site is now organized like a lightweight personal blog portal:
+
+- `BLOG`: Markdown articles from `src/content/blog`.
+- `ARCHIVE`: post timeline, categories, tags, and RSS.
+- `MY`: anime, diary, albums, and devices pages.
+- `NETWORK`: about, friends, GitHub, email, and site links.
+- `BUILD`: projects, skills, and timeline pages.
+- `SYSTEM`: ready/planned features such as RSS, search, comments, music, and widgets.
+
+The RSS feed is generated at:
+
+```txt
+/rss.xml
+```
 
 ## Local Commands
 

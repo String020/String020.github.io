@@ -7,6 +7,7 @@ const blog = defineCollection({
     title: z.string(),
     description: z.string(),
     date: z.coerce.date(),
+    published: z.coerce.date().optional(),
     updated: z.coerce.date().optional(),
     tags: z.array(z.string()).default([]),
     category: z.string().default("General"),
@@ -15,6 +16,7 @@ const blog = defineCollection({
     pinned: z.boolean().default(false),
     draft: z.boolean().default(false),
     image: z.string().optional(),
+    comment: z.boolean().default(true),
   }),
 });
 

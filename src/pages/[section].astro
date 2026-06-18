@@ -1,0 +1,131 @@
+---
+import { getCollection } from "astro:content";
+import { site } from "../data/site";
+import "../styles/global.css";
+
+export function getStaticPaths() {
+  return site.featurePages.map((featurePage) => ({
+    params: { section: featurePage.slug },
+    props: { featurePage },
+  }));
+}
+
+const { featurePage } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
+const getPostDate = (post: { data: { published?: Date; date?: Date } }) =>
+  post.data.published ?? post.data.date ?? new Date(0);
+const posts = (await getCollection("blog"))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => {
+    const pinnedDelta = Number(b.data.pinned) - Number(a.data.pinned);
+    if (pinnedDelta !== 0) return pinnedDelta;
+    return getPostDate(b).valueOf() - getPostDate(a).valueOf();
+  });
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "2-digit" }).format(date);
+const projectItems = featurePage.slug === "projects" ? site.build.projects : [];
+const skillItems = featurePage.slug === "skills" ? site.skills.items : [];
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={featurePage.description} />
+    <title>{featurePage.title} | {site.brand.name}</title>
+  </head>
+  <body style={backgroundStyle}>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="soft-wash" aria-hidden="true"></div>
+
+    <main class="section-shell panel">
+      <a class="back-link" href={withBase()}>Back to portal</a>
+      <header class="section-header">
+        <p>{featurePage.group}</p>
+        <div>
+          <span class="section-badge">{featurePage.badge}</span>
+          <span class={`status-pill ${featurePage.status.toLowerCase()}`}>{featurePage.status}</span>
+        </div>
+        <h1>{featurePage.title}</h1>
+        <span>{featurePage.description}</span>
+      </header>
+
+      <section class="section-grid" aria-label={`${featurePage.title} feature list`}>
+        {
+          featurePage.items.map((item, index) => (
+            <article class="section-tile">
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <h2>{item}</h2>
+              <p>Placeholder area for real content. Replace this item in <code>src/data/site.ts</code> when the page becomes concrete.</p>
+            </article>
+          ))
+        }
+      </section>
+
+      {
+        featurePage.slug === "archive" && (
+          <section class="section-block" aria-label="Archive posts">
+            <h2>Published posts</h2>
+            <div class="blog-list">
+              {posts.map((post) => (
+                <a class="blog-row" href={withBase(`blog/${post.id}/`)}>
+                  <time datetime={getPostDate(post).toISOString()}>{formatDate(getPostDate(post))}</time>
+                  <div>
+                    <div class="post-meta-line">
+                      {post.data.pinned && <span>Pinned</span>}
+                      {post.data.category && <span>{post.data.category}</span>}
+                    </div>
+                    <h2>{post.data.title}</h2>
+                    <p>{post.data.description}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )
+      }
+
+      {
+        projectItems.length > 0 && (
+          <section class="section-block" aria-label="Project cards">
+            <h2>Project cards</h2>
+            <div class="compact-card-list">
+              {projectItems.map((project, index) => (
+                <article class="project-item">
+                  <span class={`project-icon tone-${["a", "b", "c"][index % 3]}`}>
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <div>
+                    <h3>{project.title}</h3>
+                    <p>{project.text}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )
+      }
+
+      {
+        skillItems.length > 0 && (
+          <section class="section-block" aria-label="Skill cards">
+            <h2>Skill cards</h2>
+            <div class="skill-grid">
+              {skillItems.map((skill) => (
+                <article class="skill-item">
+                  <div class="skill-badge">{skill.badge}</div>
+                  <h3>{skill.title}</h3>
+                  <p>{skill.text}</p>
+                  <div class="meter"><span style={`width: ${skill.progress}%`}></span></div>
+                </article>
+              ))}
+            </div>
+          </section>
+        )
+      }
+    </main>
+  </body>
+</html>
