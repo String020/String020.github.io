@@ -1,7 +1,9 @@
 import { getCollection } from "astro:content";
-import { getCategory, getReadingStats, isPublished, sortPosts } from "../lib/blog";
+import { getCategory, getImageUrl, getReadingStats, getSeries, isPublished, sortPosts } from "../lib/blog";
 
 export async function GET() {
+  const base = import.meta.env.BASE_URL || "/";
+  const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
   const posts = sortPosts((await getCollection("blog")).filter(isPublished));
 
   const payload = posts.map((post) => {
@@ -17,8 +19,11 @@ export async function GET() {
       title: post.data.title,
       description: post.data.description,
       date: post.data.date.toISOString(),
+      updated: post.data.updated?.toISOString() ?? "",
       tags: post.data.tags,
       category: getCategory(post),
+      series: getSeries(post),
+      image: getImageUrl(post, withBase),
       url: `/blog/${post.id}/`,
       reading: getReadingStats(post).label,
       excerpt,
