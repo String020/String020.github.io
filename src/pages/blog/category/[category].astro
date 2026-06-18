@@ -1,0 +1,72 @@
+---
+import { getCollection } from "astro:content";
+import { site } from "../../../data/site";
+import { formatDate, getAllCategories, getCategory, getReadingStats, isPublished, slugifyTaxonomy, sortPosts } from "../../../lib/blog";
+import "../../../styles/global.css";
+import "../../../styles/blog-features.css";
+
+export async function getStaticPaths() {
+  const posts = sortPosts((await getCollection("blog")).filter(isPublished));
+  const categories = getAllCategories(posts);
+
+  return categories.map((category) => ({
+    params: { category: slugifyTaxonomy(category) },
+    props: {
+      category,
+      posts: posts.filter((post) => getCategory(post) === category),
+    },
+  }));
+}
+
+const { category, posts } = Astro.props;
+const base = import.meta.env.BASE_URL;
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={`Posts in ${category}.`} />
+    <title>{category} | {site.brand.name}</title>
+  </head>
+  <body style={backgroundStyle}>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="soft-wash" aria-hidden="true"></div>
+
+    <main class="blog-shell panel">
+      <a class="back-link" href={withBase("blog/")}>Back to blog</a>
+      <header class="blog-header">
+        <p>CATEGORY</p>
+        <h1>{category}</h1>
+        <span>{posts.length} post{posts.length === 1 ? "" : "s"} in this category.</span>
+      </header>
+
+      <section class="blog-list" aria-label={`Posts in ${category}`}>
+        {posts.map((post) => {
+          const stats = getReadingStats(post);
+          return (
+            <article class="blog-row">
+              <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+              <div>
+                <div class="post-meta-line">
+                  {post.data.pinned && <span class="pinned-badge">Pinned</span>}
+                  <span class="meta-pill">{stats.label}</span>
+                </div>
+                <a class="post-title-link" href={withBase(`blog/${post.id}/`)}><h2>{post.data.title}</h2></a>
+                <p>{post.data.description}</p>
+                <div class="post-tags">
+                  {post.data.tags.map((tag) => (
+                    <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
+                  ))}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </section>
+    </main>
+  </body>
+</html>
