@@ -1,13 +1,14 @@
 ---
 import { getCollection } from "astro:content";
 import { site } from "../../data/site";
-import { formatDate, getAllCategories, getAllTags, getCategory, getReadingStats, isPublished, slugifyTaxonomy, sortPosts } from "../../lib/blog";
+import { formatDate, getAllCategories, getAllSeries, getAllTags, getCategory, getImageUrl, getReadingStats, getSeries, isPublished, slugifyTaxonomy, sortPosts } from "../../lib/blog";
 import "../../styles/global.css";
 import "../../styles/blog-features.css";
 
 const posts = sortPosts((await getCollection("blog")).filter(isPublished));
 const tags = getAllTags(posts);
 const categories = getAllCategories(posts);
+const seriesList = getAllSeries(posts);
 
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
@@ -35,6 +36,7 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
         <nav class="blog-tools" aria-label="Blog tools">
           <a class="tool-link" href={withBase("search/")}>Search</a>
           <a class="tool-link" href={withBase("blog/archive/")}>Archive</a>
+          <a class="tool-link" href={withBase("blog/writing-guide/")}>Writing guide</a>
           <a class="tool-link" href={withBase("rss.xml")}>RSS</a>
           <a class="tool-link" href={withBase("sitemap.xml")}>Sitemap</a>
         </nav>
@@ -46,6 +48,17 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
           <div class="taxonomy-cloud">
             {categories.map((category) => (
               <a class="taxonomy-link" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {seriesList.length > 0 && (
+        <section class="taxonomy-block" aria-label="Series">
+          <h2>Series</h2>
+          <div class="taxonomy-cloud">
+            {seriesList.map((series) => (
+              <a class="taxonomy-link" href={withBase(`blog/series/${slugifyTaxonomy(series)}/`)}>{series}</a>
             ))}
           </div>
         </section>
@@ -67,13 +80,21 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
           posts.map((post) => {
             const stats = getReadingStats(post);
             const category = getCategory(post);
+            const series = getSeries(post);
+            const image = getImageUrl(post, withBase);
             return (
-              <article class="blog-row">
+              <article class={`blog-row ${image ? "has-cover" : ""}`}>
+                {image && (
+                  <a class="post-cover" href={withBase(`blog/${post.id}/`)} aria-label={post.data.title}>
+                    <img src={image} alt="" loading="lazy" />
+                  </a>
+                )}
                 <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
                 <div>
                   <div class="post-meta-line">
                     {post.data.pinned && <span class="pinned-badge">Pinned</span>}
                     <a class="post-category" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+                    {series && <a class="meta-pill" href={withBase(`blog/series/${slugifyTaxonomy(series)}/`)}>{series}</a>}
                     <span class="meta-pill">{stats.label}</span>
                   </div>
                   <a class="post-title-link" href={withBase(`blog/${post.id}/`)}>
