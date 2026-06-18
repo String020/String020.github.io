@@ -1,5 +1,5 @@
 ---
-import { getCollection } from "astro:content";
+import { getCollection, render } from "astro:content";
 import { site } from "../data/site";
 import "../styles/global.css";
 import "../styles/blog-features.css";
@@ -13,6 +13,12 @@ const blogPosts = (await getCollection("blog"))
     if (pinnedDelta !== 0) return pinnedDelta;
     return getPostDate(b).valueOf() - getPostDate(a).valueOf();
   });
+const renderedBlogPosts = await Promise.all(
+  blogPosts.map(async (post) => {
+    const { Content } = await render(post);
+    return { post, Content };
+  }),
+);
 
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
@@ -28,7 +34,7 @@ const tagHref = (tag: string) =>
     Study: "blog/tag/notes/",
   })[tag] ?? `search/?q=${encodeURIComponent(tag)}`;
 const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
-const pageCount = site.nav.length;
+const pageCount = site.nav.length + site.featurePages.length + renderedBlogPosts.length + 1;
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "2-digit" }).format(date);
 const dashboardStats = site.dashboard.stats.map((stat) =>
@@ -42,6 +48,49 @@ const tagCounts = blogPosts.reduce((counts, post) => {
 const topTags = Array.from(tagCounts.entries())
   .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   .slice(0, 8);
+const searchHref = (query: string) => `search/?q=${encodeURIComponent(query)}`;
+const sectionItemHref = (featureSlug: string, item: string) => {
+  const archiveLinks: Record<string, string> = {
+    "Blog timeline": "blog/archive/",
+    "Pinned posts": "blog/",
+    Categories: "blog/",
+    Tags: "blog/",
+    "RSS feed": "rss.xml",
+    Sitemap: "sitemap.xml",
+  };
+  const myLinks: Record<string, string> = {
+    Anime: "anime/",
+    Music: "music/",
+    Devices: "devices/",
+    Collection: "collection/",
+  };
+  const aboutLinks: Record<string, string> = {
+    Profile: "about/",
+    "Study direction": "about/",
+    Interests: "my/",
+    Contact: "contact/",
+  };
+  const contactLinks: Record<string, string> = {
+    GitHub: "https://github.com/String020",
+    "Email later": "contact/",
+    "Social links": "contact/",
+    "Message widget later": "lab/",
+  };
+
+  if (featureSlug === "archives" && archiveLinks[item]) return archiveLinks[item];
+  if (featureSlug === "my" && myLinks[item]) return myLinks[item];
+  if (featureSlug === "about" && aboutLinks[item]) return aboutLinks[item];
+  if (featureSlug === "contact" && contactLinks[item]) return contactLinks[item];
+  if (featureSlug === "projects") return "projects/";
+  if (featureSlug === "skills") return searchHref(item);
+  return searchHref(`${featureSlug} ${item}`);
+};
+const tabForGroup = (group: string) =>
+  ({
+    Archives: 2,
+    My: 3,
+    About: 4,
+  })[group];
 ---
 
 <!doctype html>
@@ -147,7 +196,7 @@ const topTags = Array.from(tagCounts.entries())
 
       <section class="content-stage panel" aria-live="polite">
         <div class="slide-track" data-track style={`--page-count: ${pageCount}`}>
-          <article class="page is-current" data-panel="home">
+          <article class="page is-current" data-panel="home" data-route="">
             <div class="page-heading">
               <p>{site.dashboard.eyebrow}</p>
               <h2>{site.dashboard.title}</h2>
@@ -179,7 +228,7 @@ const topTags = Array.from(tagCounts.entries())
             </div>
           </article>
 
-          <article class="page" data-panel="blog">
+          <article class="page" data-panel="blog" data-route="blog/" data-tab="1">
             <div class="page-heading">
               <p>{site.blog.eyebrow}</p>
               <h2>{site.blog.title}</h2>
@@ -209,7 +258,7 @@ const topTags = Array.from(tagCounts.entries())
             </div>
           </article>
 
-          <article class="page" data-panel="archive">
+          <article class="page" data-panel="archive" data-route-main="archives/" data-tab="2">
             <div class="page-heading">
               <p>{site.archives.eyebrow}</p>
               <h2>{site.archives.title}</h2>
@@ -233,7 +282,7 @@ const topTags = Array.from(tagCounts.entries())
             </div>
           </article>
 
-          <article class="page" data-panel="my">
+          <article class="page" data-panel="my" data-route-main="my/" data-tab="3">
             <div class="page-heading">
               <p>{site.mySpace.eyebrow}</p>
               <h2>{site.mySpace.title}</h2>
@@ -251,7 +300,7 @@ const topTags = Array.from(tagCounts.entries())
             </div>
           </article>
 
-          <article class="page" data-panel="about">
+          <article class="page" data-panel="about" data-route-main="about/" data-tab="4">
             <div class="page-heading">
               <p>{site.about.eyebrow}</p>
               <h2>{site.about.title}</h2>
@@ -296,6 +345,150 @@ const topTags = Array.from(tagCounts.entries())
               }
             </div>
           </article>
+
+          {
+            site.featurePages.map((featurePage) => (
+              <article
+                class="page detail-page"
+                data-panel={`detail-${featurePage.slug}`}
+                data-route={`${featurePage.slug}/`}
+                data-tab={tabForGroup(featurePage.group)}
+              >
+                <a class="panel-back" href={withBase()} data-portal-route="">Back to dashboard</a>
+                <header class="section-header">
+                  <p>{featurePage.group}</p>
+                  <div>
+                    <span class="section-badge">{featurePage.badge}</span>
+                    <span class={`status-pill ${featurePage.status.toLowerCase()}`}>{featurePage.status}</span>
+                  </div>
+                  <h1>{featurePage.title}</h1>
+                  <span>{featurePage.description}</span>
+                </header>
+
+                <section class="section-grid" aria-label={`${featurePage.title} feature list`}>
+                  {featurePage.items.map((item, index) => (
+                    <a class="section-tile" href={linkHref(sectionItemHref(featurePage.slug, item))}>
+                      <span>{String(index + 1).padStart(2, "0")}</span>
+                      <h2>{item}</h2>
+                      <p>Open this route inside the portal panel. Replace this card later when the feature becomes concrete.</p>
+                    </a>
+                  ))}
+                </section>
+
+                {featurePage.slug === "archives" && (
+                  <section class="section-block" aria-label="Archive posts">
+                    <h2>Published posts</h2>
+                    <div class="blog-list">
+                      {blogPosts.map((post) => (
+                        <a class="blog-row" href={withBase(`blog/${post.id}/`)}>
+                          <time datetime={getPostDate(post).toISOString()}>{formatDate(getPostDate(post))}</time>
+                          <div>
+                            <div class="post-meta-line">
+                              {post.data.pinned && <span>Pinned</span>}
+                              {post.data.category && <span>{post.data.category}</span>}
+                            </div>
+                            <h2>{post.data.title}</h2>
+                            <p>{post.data.description}</p>
+                          </div>
+                        </a>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {featurePage.slug === "projects" && (
+                  <section class="section-block" aria-label="Project cards">
+                    <h2>Project cards</h2>
+                    <div class="compact-card-list">
+                      {site.build.projects.map((project, index) => (
+                        <article class="project-item">
+                          <span class={`project-icon tone-${["a", "b", "c"][index % 3]}`}>
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+                          <div>
+                            <h3>{project.title}</h3>
+                            <p>{project.text}</p>
+                          </div>
+                          <a href={linkHref(project.href)}>View</a>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {featurePage.slug === "skills" && (
+                  <section class="section-block" aria-label="Skill cards">
+                    <h2>Skill cards</h2>
+                    <div class="skill-grid">
+                      {site.skills.items.map((skill) => (
+                        <article class="skill-item">
+                          <div class="skill-badge">{skill.badge}</div>
+                          <h3>{skill.title}</h3>
+                          <p>{skill.text}</p>
+                          <div class="meter"><span style={`width: ${skill.progress}%`}></span></div>
+                          <a class="text-link inline-action" href={withBase(searchHref(skill.title))}>Search notes</a>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
+                {featurePage.slug === "contact" && (
+                  <section class="section-block" aria-label="Contact links">
+                    <h2>Contact routes</h2>
+                    <div class="contact-grid">
+                      {site.about.links.map((link) => (
+                        <a href={linkHref(link.href)}>
+                          <span>{link.label}</span>
+                          {link.value}
+                        </a>
+                      ))}
+                    </div>
+                  </section>
+                )}
+              </article>
+            ))
+          }
+
+          {
+            renderedBlogPosts.map(({ post, Content }) => (
+              <article
+                class="page detail-page article-panel"
+                data-panel={`post-${post.id}`}
+                data-route={`blog/${post.id}/`}
+                data-tab="1"
+              >
+                <a class="panel-back" href={withBase("blog/")} data-portal-route="blog/">Back to blog panel</a>
+                <header class="article-header">
+                  <time datetime={getPostDate(post).toISOString()}>{formatDate(getPostDate(post))}</time>
+                  <h1>{post.data.title}</h1>
+                  <p>{post.data.description}</p>
+                  <div class="article-meta">
+                    {post.data.category && <a class="meta-pill" href={withBase("blog/")}>{post.data.category}</a>}
+                    {post.data.pinned && <span class="meta-pill">Pinned</span>}
+                  </div>
+                  <div class="article-tags">
+                    {post.data.tags.map((tag) => (
+                      <a href={withBase(`blog/tag/${tag.toLowerCase().replace(/\s+/g, "-")}/`)}>#{tag}</a>
+                    ))}
+                  </div>
+                </header>
+                <div class="article-body">
+                  <Content />
+                </div>
+              </article>
+            ))
+          }
+
+          <article class="page detail-page" data-panel="search" data-route="search/" data-search-root data-search-url={withBase("search-data.json")} data-base={base}>
+            <a class="panel-back" href={withBase()} data-portal-route="">Back to dashboard</a>
+            <div class="page-heading">
+              <p>Search</p>
+              <h2>Search blog inside the portal.</h2>
+            </div>
+            <input class="search-box portal-search-box" id="portal-search-box" type="search" placeholder="Type keywords..." autocomplete="off" />
+            <section class="search-results" id="portal-search-results" aria-live="polite"></section>
+          </article>
         </div>
       </section>
     </main>
@@ -305,15 +498,42 @@ const topTags = Array.from(tagCounts.entries())
       const track = document.querySelector("[data-track]");
       const panels = Array.from(document.querySelectorAll("[data-panel]"));
       const pageCount = panels.length || 1;
+      const basePath = new URL(document.baseURI).pathname;
+      const routeMap = new Map();
 
       track.style.setProperty("--page-count", String(pageCount));
 
-      function setActivePage(index) {
+      panels.forEach((panel, index) => {
+        panel.dataset.panelIndex = String(index);
+        const route = panel.dataset.route;
+        if (route !== undefined) {
+          routeMap.set(route, panel.dataset.panel);
+        }
+      });
+
+      routeMap.set("/", "home");
+      routeMap.set("blog/archive/", "detail-archives");
+
+      function normalizeRoute(url) {
+        const parsed = new URL(url, window.location.href);
+        if (parsed.origin !== window.location.origin) return null;
+        let pathname = parsed.pathname;
+        if (basePath !== "/" && pathname.startsWith(basePath)) {
+          pathname = pathname.slice(basePath.length);
+        }
+        pathname = pathname.replace(/^\/+/, "");
+        return pathname ? `${pathname.replace(/\/?$/, "/")}${parsed.search}` : "";
+      }
+
+      function setActivePage(index, pushRoute = null) {
         const pageIndex = Number(index);
         track.style.transform = `translateX(calc(-${pageIndex} * 100% / ${pageCount}))`;
 
+        const activePanel = panels[pageIndex];
+        const activeTab = activePanel?.dataset.tab ? Number(activePanel.dataset.tab) : pageIndex;
+
         tabs.forEach((tab, currentIndex) => {
-          const isActive = currentIndex === pageIndex;
+          const isActive = currentIndex === activeTab;
           tab.classList.toggle("is-active", isActive);
           tab.setAttribute("aria-selected", String(isActive));
         });
@@ -321,12 +541,132 @@ const topTags = Array.from(tagCounts.entries())
         panels.forEach((panel, currentIndex) => {
           panel.classList.toggle("is-current", currentIndex === pageIndex);
         });
+
+        if (pushRoute !== null) {
+          const routeUrl = new URL(pushRoute || ".", window.location.origin + basePath);
+          window.history.pushState({ panel: activePanel?.dataset.panel }, "", routeUrl);
+        }
+      }
+
+      function openPanel(panelName, pushRoute = null) {
+        const panel = panels.find((item) => item.dataset.panel === panelName);
+        if (!panel) return false;
+        setActivePage(Number(panel.dataset.panelIndex), pushRoute);
+        return true;
+      }
+
+      function openRoute(route, push = true) {
+        const cleanRoute = route.split("?")[0];
+        const panelName = routeMap.get(cleanRoute);
+        if (!panelName) return false;
+        return openPanel(panelName, push ? cleanRoute : null);
       }
 
       tabs.forEach((tab) => {
         tab.addEventListener("click", () => {
-          setActivePage(tab.dataset.page);
+          setActivePage(tab.dataset.page, null);
         });
+      });
+
+      document.addEventListener("click", (event) => {
+        const link = event.target.closest("a[href]");
+        if (!link || link.target || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        const route = link.dataset.portalRoute ?? normalizeRoute(link.href);
+        if (route === null) return;
+        if (openRoute(route)) {
+          event.preventDefault();
+        }
+      });
+
+      window.addEventListener("popstate", () => {
+        const route = normalizeRoute(window.location.href);
+        if (!route || !openRoute(route, false)) {
+          setActivePage(0);
+        }
+      });
+
+      const searchRoot = document.querySelector("[data-search-root]");
+      const searchInput = document.getElementById("portal-search-box");
+      const searchResults = document.getElementById("portal-search-results");
+      const searchUrl = searchRoot?.dataset.searchUrl || `${basePath}search-data.json`;
+      let portalPosts = [];
+
+      const withPortalBase = (path) => `${basePath}${String(path).replace(/^\/+/, "")}`;
+      const normalizeText = (value) => String(value || "").toLowerCase();
+
+      function findPortalMatches(query) {
+        const terms = normalizeText(query).trim().split(/\s+/).filter(Boolean);
+        if (terms.length === 0) return [];
+
+        return portalPosts.filter((post) => {
+          const haystack = normalizeText([
+            post.title,
+            post.description,
+            post.category,
+            ...(post.tags || []),
+            post.excerpt,
+          ].join(" "));
+          return terms.every((term) => haystack.includes(term));
+        });
+      }
+
+      function renderPortalSearch(items, query) {
+        searchResults?.replaceChildren();
+        if (!searchResults) return;
+
+        if (!query) {
+          const empty = document.createElement("p");
+          empty.className = "search-empty";
+          empty.textContent = "Type keywords to search matching posts.";
+          searchResults.appendChild(empty);
+          return;
+        }
+
+        if (items.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "search-empty";
+          empty.textContent = "No matching posts found yet.";
+          searchResults.appendChild(empty);
+          return;
+        }
+
+        items.forEach((post) => {
+          const card = document.createElement("article");
+          card.className = "search-result-card";
+
+          const title = document.createElement("a");
+          title.className = "post-title-link";
+          title.href = withPortalBase(post.url);
+          title.textContent = post.title;
+
+          const meta = document.createElement("small");
+          meta.textContent = `${post.category} / ${post.reading}`;
+
+          const desc = document.createElement("p");
+          desc.textContent = post.description || post.excerpt || "";
+
+          card.append(title, meta, desc);
+          searchResults.appendChild(card);
+        });
+      }
+
+      function runPortalSearch(query) {
+        renderPortalSearch(findPortalMatches(query), query.trim());
+      }
+
+      fetch(searchUrl)
+        .then((response) => response.json())
+        .then((data) => {
+          portalPosts = Array.isArray(data) ? data : [];
+          runPortalSearch("");
+        })
+        .catch(() => {
+          if (searchResults) searchResults.textContent = "Search index failed to load.";
+        });
+
+      searchInput?.addEventListener("input", () => {
+        runPortalSearch(searchInput.value);
       });
 
       setActivePage(0);
