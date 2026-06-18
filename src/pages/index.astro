@@ -21,33 +21,12 @@ const linkHref = (href: string) => (isExternal(href) ? href : withBase(href));
 const tagHref = (tag: string) =>
   ({
     Blog: "blog/",
-    Archive: "blog/archive/",
+    Archives: "archives/",
+    My: "my/",
+    About: "about/",
     Projects: "projects/",
     Study: "blog/tag/notes/",
   })[tag] ?? `search/?q=${encodeURIComponent(tag)}`;
-const systemFeatureHref = (title: string) =>
-  ({
-    "Markdown blog": "blog/",
-    "Pinned posts": "blog/",
-    "Categories and tags": "blog/",
-    Search: "search/",
-    RSS: "rss.xml",
-    Sitemap: "sitemap.xml",
-    "Feature pages": "archive/",
-    Comments: "blog/writing-guide/",
-    Music: "devices/",
-  })[title] ?? "search/";
-const widgetHref = (widget: string) =>
-  ({
-    Profile: "about/",
-    Notice: "/",
-    Tags: "blog/",
-    Categories: "blog/",
-    "Table of contents": "blog/first-post/",
-    "Site stats": "archive/",
-    Calendar: "timeline/",
-    Music: "devices/",
-  })[widget] ?? "archive/";
 const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
 const pageCount = site.nav.length;
 const formatDate = (date: Date) =>
@@ -96,7 +75,7 @@ const topTags = Array.from(tagCounts.entries())
             </button>
           ))
         }
-        <a class="tool-button compact" href={withBase("blog/archive/")} aria-label="Open archive">
+        <a class="tool-button compact" href={withBase("archives/")} aria-label="Open archives">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 7h9"></path>
             <path d="M17 7h3"></path>
@@ -116,12 +95,12 @@ const topTags = Array.from(tagCounts.entries())
           </svg>
           <span>Search blog</span>
         </a>
-        <a class="tool-button dot-grid" href={withBase("archive/")} aria-label="Open feature map">
+        <a class="tool-button dot-grid" href={withBase("lab/")} aria-label="Open lab">
           <span></span><span></span><span></span>
           <span></span><span></span><span></span>
           <span></span><span></span><span></span>
         </a>
-        <a class="tool-button" href={withBase("friends/")} aria-label="Open network links">
+        <a class="tool-button" href={withBase("contact/")} aria-label="Open contact links">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5.4 6.2h13.2a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-6.1l-4.1 3v-3h-3a2 2 0 0 1-2-2V8.2a2 2 0 0 1 2-2Z"></path>
             <path d="M8 10.3h8"></path>
@@ -232,13 +211,13 @@ const topTags = Array.from(tagCounts.entries())
 
           <article class="page" data-panel="archive">
             <div class="page-heading">
-              <p>{site.archive.eyebrow}</p>
-              <h2>{site.archive.title}</h2>
+              <p>{site.archives.eyebrow}</p>
+              <h2>{site.archives.title}</h2>
             </div>
-            <p class="page-intro">{site.archive.intro}</p>
+            <p class="page-intro">{site.archives.intro}</p>
             <div class="feature-grid">
               {
-                site.archive.cards.map((card) => (
+                site.archives.cards.map((card) => (
                   <a class="directory-card" href={linkHref(card.href)}>
                     <span>{card.badge}</span>
                     <h3>{card.title}</h3>
@@ -272,15 +251,15 @@ const topTags = Array.from(tagCounts.entries())
             </div>
           </article>
 
-          <article class="page" data-panel="network">
+          <article class="page" data-panel="about">
             <div class="page-heading">
-              <p>{site.network.eyebrow}</p>
-              <h2>{site.network.title}</h2>
+              <p>{site.about.eyebrow}</p>
+              <h2>{site.about.title}</h2>
             </div>
             <div class="network-grid">
               <div class="feature-grid compact">
                 {
-                  site.network.pages.map((page) => (
+                  site.about.pages.map((page) => (
                     <a class="directory-card" href={withBase(`${page.slug}/`)}>
                       <span>{page.badge}</span>
                       <h3>{page.title}</h3>
@@ -291,7 +270,7 @@ const topTags = Array.from(tagCounts.entries())
               </div>
               <div class="contact-grid">
                 {
-                  site.network.links.map((link) => (
+                  site.about.links.map((link) => (
                     <a href={linkHref(link.href)}>
                       <span>{link.label}</span>
                       {link.value}
@@ -299,24 +278,6 @@ const topTags = Array.from(tagCounts.entries())
                   ))
                 }
               </div>
-            </div>
-          </article>
-
-          <article class="page" data-panel="build">
-            <div class="page-heading">
-              <p>{site.build.eyebrow}</p>
-              <h2>{site.build.title}</h2>
-            </div>
-            <div class="feature-grid build-pages">
-              {
-                site.build.pages.map((page) => (
-                  <a class="directory-card" href={withBase(`${page.slug}/`)}>
-                    <span>{page.badge}</span>
-                    <h3>{page.title}</h3>
-                    <p>{page.text}</p>
-                  </a>
-                ))
-              }
             </div>
             <div class="compact-card-list">
               {
@@ -334,30 +295,6 @@ const topTags = Array.from(tagCounts.entries())
                 ))
               }
             </div>
-          </article>
-
-          <article class="page" data-panel="system">
-            <div class="page-heading">
-              <p>{site.system.eyebrow}</p>
-              <h2>{site.system.title}</h2>
-            </div>
-            <div class="status-grid">
-              {
-                site.system.features.map((feature) => (
-                  <a class="status-card" href={linkHref(systemFeatureHref(feature.title))}>
-                    <span class={`status-pill ${feature.status}`}>{feature.status}</span>
-                    <h3>{feature.title}</h3>
-                    <p>{feature.text}</p>
-                  </a>
-                ))
-              }
-            </div>
-            <section class="widget-card">
-              <h3>Sidebar/widget map</h3>
-              <div class="widget-cloud">
-                {site.system.widgets.map((widget) => <a href={linkHref(widgetHref(widget))}>{widget}</a>)}
-              </div>
-            </section>
           </article>
         </div>
       </section>

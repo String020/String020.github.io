@@ -13,6 +13,8 @@ export function getStaticPaths() {
 const { featurePage } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const isExternal = (href: string) => /^(https?:|mailto:|#)/.test(href);
+const linkHref = (href: string) => (isExternal(href) ? href : withBase(href));
 const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
 const getPostDate = (post: { data: { published?: Date; date?: Date } }) =>
   post.data.published ?? post.data.date ?? new Date(0);
@@ -37,9 +39,39 @@ const sectionItemHref = (item: string) => {
     "RSS feed": "rss.xml",
     Sitemap: "sitemap.xml",
   };
+  const myLinks: Record<string, string> = {
+    Anime: "anime/",
+    Music: "music/",
+    Devices: "devices/",
+    Collection: "collection/",
+  };
+  const aboutLinks: Record<string, string> = {
+    Profile: "about/",
+    "Study direction": "about/",
+    Interests: "my/",
+    Contact: "contact/",
+  };
+  const contactLinks: Record<string, string> = {
+    GitHub: "https://github.com/String020",
+    "Email later": "contact/",
+    "Social links": "contact/",
+    "Message widget later": "lab/",
+  };
 
-  if (featurePage.slug === "archive" && archiveLinks[item]) {
+  if (featurePage.slug === "archives" && archiveLinks[item]) {
     return archiveLinks[item];
+  }
+
+  if (featurePage.slug === "my" && myLinks[item]) {
+    return myLinks[item];
+  }
+
+  if (featurePage.slug === "about" && aboutLinks[item]) {
+    return aboutLinks[item];
+  }
+
+  if (featurePage.slug === "contact" && contactLinks[item]) {
+    return contactLinks[item];
   }
 
   if (featurePage.slug === "projects") {
@@ -81,7 +113,7 @@ const sectionItemHref = (item: string) => {
       <section class="section-grid" aria-label={`${featurePage.title} feature list`}>
         {
           featurePage.items.map((item, index) => (
-            <a class="section-tile" href={withBase(sectionItemHref(item))}>
+            <a class="section-tile" href={linkHref(sectionItemHref(item))}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <h2>{item}</h2>
               <p>Open the related route or search this topic. Replace this item in <code>src/data/site.ts</code> when the page becomes concrete.</p>
@@ -91,7 +123,7 @@ const sectionItemHref = (item: string) => {
       </section>
 
       {
-        featurePage.slug === "archive" && (
+        featurePage.slug === "archives" && (
           <section class="section-block" aria-label="Archive posts">
             <h2>Published posts</h2>
             <div class="blog-list">

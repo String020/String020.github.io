@@ -1,4 +1,5 @@
 import { getCollection } from "astro:content";
+import { site as siteData } from "../data/site";
 import { getAllCategories, getAllSeries, getAllTags, isPublished, slugifyTaxonomy, sortPosts } from "../lib/blog";
 
 const escapeXml = (value: string) =>
@@ -26,6 +27,7 @@ export async function GET({ site }: { site?: URL }) {
     "/blog/archive/",
     "/blog/writing-guide/",
     "/search/",
+    ...siteData.featurePages.map((page) => `/${page.slug}/`),
     ...posts.map((post) => `/blog/${post.id}/`),
     ...tags.map((tag) => `/blog/tag/${slugifyTaxonomy(tag)}/`),
     ...categories.map((category) => `/blog/category/${slugifyTaxonomy(category)}/`),
