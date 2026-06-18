@@ -1,17 +1,17 @@
 ---
 import { getCollection } from "astro:content";
 import { site } from "../../data/site";
+import { formatDate, getAllCategories, getAllTags, getCategory, getReadingStats, isPublished, slugifyTaxonomy, sortPosts } from "../../lib/blog";
 import "../../styles/global.css";
+import "../../styles/blog-features.css";
 
-const posts = (await getCollection("blog"))
-  .filter((post) => !post.data.draft)
-  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+const posts = sortPosts((await getCollection("blog")).filter(isPublished));
+const tags = getAllTags(posts);
+const categories = getAllCategories(posts);
 
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
 const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
-const formatDate = (date: Date) =>
-  new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "2-digit" }).format(date);
 ---
 
 <!doctype html>
@@ -32,22 +32,63 @@ const formatDate = (date: Date) =>
         <p>BLOG</p>
         <h1>All posts</h1>
         <span>Markdown files from <code>src/content/blog</code>.</span>
+        <nav class="blog-tools" aria-label="Blog tools">
+          <a class="tool-link" href={withBase("search/")}>Search</a>
+          <a class="tool-link" href={withBase("blog/archive/")}>Archive</a>
+          <a class="tool-link" href={withBase("rss.xml")}>RSS</a>
+          <a class="tool-link" href={withBase("sitemap.xml")}>Sitemap</a>
+        </nav>
       </header>
+
+      {categories.length > 0 && (
+        <section class="taxonomy-block" aria-label="Categories">
+          <h2>Categories</h2>
+          <div class="taxonomy-cloud">
+            {categories.map((category) => (
+              <a class="taxonomy-link" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {tags.length > 0 && (
+        <section class="taxonomy-block" aria-label="Tags">
+          <h2>Tags</h2>
+          <div class="taxonomy-cloud">
+            {tags.map((tag) => (
+              <a class="taxonomy-link" href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section class="blog-list" aria-label="Blog posts">
         {
-          posts.map((post) => (
-            <a class="blog-row" href={withBase(`blog/${post.id}/`)}>
-              <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
-              <div>
-                <h2>{post.data.title}</h2>
-                <p>{post.data.description}</p>
-                <div class="post-tags">
-                  {post.data.tags.map((tag) => <span>{tag}</span>)}
+          posts.map((post) => {
+            const stats = getReadingStats(post);
+            const category = getCategory(post);
+            return (
+              <article class="blog-row">
+                <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+                <div>
+                  <div class="post-meta-line">
+                    {post.data.pinned && <span class="pinned-badge">Pinned</span>}
+                    <a class="post-category" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+                    <span class="meta-pill">{stats.label}</span>
+                  </div>
+                  <a class="post-title-link" href={withBase(`blog/${post.id}/`)}>
+                    <h2>{post.data.title}</h2>
+                  </a>
+                  <p>{post.data.description}</p>
+                  <div class="post-tags">
+                    {post.data.tags.map((tag) => (
+                      <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </a>
-          ))
+              </article>
+            );
+          })
         }
       </section>
     </main>
