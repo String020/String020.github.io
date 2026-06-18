@@ -38,10 +38,27 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
       const results = document.getElementById("search-results");
       const base = root?.dataset.base || "/";
       const searchUrl = root?.dataset.searchUrl || `${base}search-data.json`;
+      const initialQuery = new URLSearchParams(window.location.search).get("q") || "";
       let posts = [];
 
       const withBase = (path) => `${base}${String(path).replace(/^\/+/, "")}`;
       const normalize = (value) => String(value || "").toLowerCase();
+
+      function findMatches(query) {
+        const terms = normalize(query).trim().split(/\s+/).filter(Boolean);
+        if (terms.length === 0) return [];
+
+        return posts.filter((post) => {
+          const haystack = normalize([
+            post.title,
+            post.description,
+            post.category,
+            ...(post.tags || []),
+            post.excerpt,
+          ].join(" "));
+          return terms.every((term) => haystack.includes(term));
+        });
+      }
 
       function render(items, query) {
         results.replaceChildren();
@@ -49,7 +66,7 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
         if (!query) {
           const empty = document.createElement("p");
           empty.className = "search-empty";
-          empty.textContent = "输入关键词后会显示匹配文章。";
+          empty.textContent = "Type keywords to search matching posts.";
           results.appendChild(empty);
           return;
         }
@@ -57,7 +74,7 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
         if (items.length === 0) {
           const empty = document.createElement("p");
           empty.className = "search-empty";
-          empty.textContent = "没有找到匹配文章。";
+          empty.textContent = "No matching posts found yet.";
           results.appendChild(empty);
           return;
         }
@@ -72,7 +89,7 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
           title.textContent = post.title;
 
           const meta = document.createElement("small");
-          meta.textContent = `${post.category} · ${post.reading}`;
+          meta.textContent = `${post.category} / ${post.reading}`;
 
           const desc = document.createElement("p");
           desc.textContent = post.description || post.excerpt || "";
@@ -82,30 +99,31 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
         });
       }
 
+      function runSearch(query) {
+        render(findMatches(query), query.trim());
+      }
+
       fetch(searchUrl)
         .then((response) => response.json())
         .then((data) => {
           posts = Array.isArray(data) ? data : [];
-          render([], "");
+          input.value = initialQuery;
+          runSearch(initialQuery);
         })
         .catch(() => {
           results.textContent = "Search index failed to load.";
         });
 
       input?.addEventListener("input", () => {
-        const query = normalize(input.value).trim();
-        const terms = query.split(/\s+/).filter(Boolean);
-        const matches = posts.filter((post) => {
-          const haystack = normalize([
-            post.title,
-            post.description,
-            post.category,
-            ...(post.tags || []),
-            post.excerpt,
-          ].join(" "));
-          return terms.every((term) => haystack.includes(term));
-        });
-        render(matches, query);
+        const query = input.value;
+        const url = new URL(window.location.href);
+        if (query.trim()) {
+          url.searchParams.set("q", query.trim());
+        } else {
+          url.searchParams.delete("q");
+        }
+        window.history.replaceState({}, "", url);
+        runSearch(query);
       });
     </script>
   </body>

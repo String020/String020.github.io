@@ -343,13 +343,24 @@ a {
 }
 
 .quick-links a,
-.tag-cloud span {
+.tag-cloud a {
   background: rgba(247, 246, 241, 0.3);
   border-radius: 8px;
   color: var(--ink-soft);
   font-size: 0.76rem;
   font-weight: 760;
   padding: 7px 10px;
+}
+
+.avatar-link {
+  color: inherit;
+  transition: transform 180ms ease, border-color 180ms ease;
+}
+
+.avatar-link:hover,
+.avatar-link:focus-visible {
+  border-color: rgba(23, 23, 23, 0.18);
+  transform: translateY(-1px);
 }
 
 .mini-card {
@@ -707,10 +718,12 @@ a {
 }
 
 .metadata-row span,
+.metadata-row a,
 .archive-strip span,
 .archive-strip a,
 .post-meta-line span,
-.widget-cloud span {
+.widget-cloud span,
+.widget-cloud a {
   background: rgba(247, 246, 241, 0.34);
   border: 1px solid rgba(23, 23, 23, 0.08);
   border-radius: 8px;
@@ -718,6 +731,38 @@ a {
   font-size: 0.72rem;
   font-weight: 760;
   padding: 6px 9px;
+}
+
+.tag-cloud a,
+.metadata-row a,
+.widget-cloud a,
+.directory-card,
+.status-card,
+.section-tile,
+.tool-button,
+.search-pill {
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.tag-cloud a:hover,
+.tag-cloud a:focus-visible,
+.metadata-row a:hover,
+.metadata-row a:focus-visible,
+.widget-cloud a:hover,
+.widget-cloud a:focus-visible,
+.directory-card:hover,
+.directory-card:focus-visible,
+.status-card:hover,
+.status-card:focus-visible,
+.section-tile:hover,
+.section-tile:focus-visible,
+.tool-button:hover,
+.tool-button:focus-visible,
+.search-pill:hover,
+.search-pill:focus-visible {
+  background: rgba(247, 246, 241, 0.48);
+  border-color: rgba(23, 23, 23, 0.16);
+  transform: translateY(-1px);
 }
 
 .network-grid {
@@ -771,6 +816,11 @@ a {
 
 .section-actions {
   margin-top: 18px;
+}
+
+.inline-action {
+  display: inline-flex;
+  margin-top: 14px;
 }
 
 .blog-panel-grid {

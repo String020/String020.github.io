@@ -27,6 +27,31 @@ const formatDate = (date: Date) =>
   new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "2-digit" }).format(date);
 const projectItems = featurePage.slug === "projects" ? site.build.projects : [];
 const skillItems = featurePage.slug === "skills" ? site.skills.items : [];
+const searchHref = (query: string) => `search/?q=${encodeURIComponent(query)}`;
+const sectionItemHref = (item: string) => {
+  const archiveLinks: Record<string, string> = {
+    "Blog timeline": "blog/archive/",
+    "Pinned posts": "blog/",
+    Categories: "blog/",
+    Tags: "blog/",
+    "RSS feed": "rss.xml",
+    Sitemap: "sitemap.xml",
+  };
+
+  if (featurePage.slug === "archive" && archiveLinks[item]) {
+    return archiveLinks[item];
+  }
+
+  if (featurePage.slug === "projects") {
+    return "projects/";
+  }
+
+  if (featurePage.slug === "skills") {
+    return searchHref(item);
+  }
+
+  return searchHref(`${featurePage.title} ${item}`);
+};
 ---
 
 <!doctype html>
@@ -56,11 +81,11 @@ const skillItems = featurePage.slug === "skills" ? site.skills.items : [];
       <section class="section-grid" aria-label={`${featurePage.title} feature list`}>
         {
           featurePage.items.map((item, index) => (
-            <article class="section-tile">
+            <a class="section-tile" href={withBase(sectionItemHref(item))}>
               <span>{String(index + 1).padStart(2, "0")}</span>
               <h2>{item}</h2>
-              <p>Placeholder area for real content. Replace this item in <code>src/data/site.ts</code> when the page becomes concrete.</p>
-            </article>
+              <p>Open the related route or search this topic. Replace this item in <code>src/data/site.ts</code> when the page becomes concrete.</p>
+            </a>
           ))
         }
       </section>
@@ -102,6 +127,7 @@ const skillItems = featurePage.slug === "skills" ? site.skills.items : [];
                     <h3>{project.title}</h3>
                     <p>{project.text}</p>
                   </div>
+                  <a href={withBase(project.href)}>View</a>
                 </article>
               ))}
             </div>
@@ -120,6 +146,7 @@ const skillItems = featurePage.slug === "skills" ? site.skills.items : [];
                   <h3>{skill.title}</h3>
                   <p>{skill.text}</p>
                   <div class="meter"><span style={`width: ${skill.progress}%`}></span></div>
+                  <a class="text-link inline-action" href={withBase(searchHref(skill.title))}>Search notes</a>
                 </article>
               ))}
             </div>

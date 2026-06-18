@@ -18,6 +18,36 @@ const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
 const isExternal = (href: string) => /^(https?:|mailto:|#)/.test(href);
 const linkHref = (href: string) => (isExternal(href) ? href : withBase(href));
+const tagHref = (tag: string) =>
+  ({
+    Blog: "blog/",
+    Archive: "blog/archive/",
+    Projects: "projects/",
+    Study: "blog/tag/notes/",
+  })[tag] ?? `search/?q=${encodeURIComponent(tag)}`;
+const systemFeatureHref = (title: string) =>
+  ({
+    "Markdown blog": "blog/",
+    "Pinned posts": "blog/",
+    "Categories and tags": "blog/",
+    Search: "search/",
+    RSS: "rss.xml",
+    Sitemap: "sitemap.xml",
+    "Feature pages": "archive/",
+    Comments: "blog/writing-guide/",
+    Music: "devices/",
+  })[title] ?? "search/";
+const widgetHref = (widget: string) =>
+  ({
+    Profile: "about/",
+    Notice: "/",
+    Tags: "blog/",
+    Categories: "blog/",
+    "Table of contents": "blog/first-post/",
+    "Site stats": "archive/",
+    Calendar: "timeline/",
+    Music: "devices/",
+  })[widget] ?? "archive/";
 const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
 const pageCount = site.nav.length;
 const formatDate = (date: Date) =>
@@ -66,7 +96,7 @@ const topTags = Array.from(tagCounts.entries())
             </button>
           ))
         }
-        <button class="tool-button compact" type="button" aria-label="Filter">
+        <a class="tool-button compact" href={withBase("blog/archive/")} aria-label="Open archive">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 7h9"></path>
             <path d="M17 7h3"></path>
@@ -75,7 +105,7 @@ const topTags = Array.from(tagCounts.entries())
             <path d="M11 17h9"></path>
             <path d="M9 15v4"></path>
           </svg>
-        </button>
+        </a>
       </nav>
 
       <div class="header-actions" aria-label="Header actions">
@@ -86,30 +116,30 @@ const topTags = Array.from(tagCounts.entries())
           </svg>
           <span>Search blog</span>
         </a>
-        <button class="tool-button dot-grid" type="button" aria-label="Apps">
+        <a class="tool-button dot-grid" href={withBase("archive/")} aria-label="Open feature map">
           <span></span><span></span><span></span>
           <span></span><span></span><span></span>
           <span></span><span></span><span></span>
-        </button>
-        <button class="tool-button" type="button" aria-label="Messages">
+        </a>
+        <a class="tool-button" href={withBase("friends/")} aria-label="Open network links">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5.4 6.2h13.2a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-6.1l-4.1 3v-3h-3a2 2 0 0 1-2-2V8.2a2 2 0 0 1 2-2Z"></path>
             <path d="M8 10.3h8"></path>
             <path d="M8 13.2h5.6"></path>
           </svg>
-        </button>
-        <button class="tool-button" type="button" aria-label="Profile">
+        </a>
+        <a class="tool-button" href={withBase("about/")} aria-label="Open profile">
           <span>{site.brand.initials}</span>
-        </button>
+        </a>
       </div>
     </header>
 
     <main class="app-shell">
       <aside class="profile-column" aria-label="Profile panel">
         <section class="profile-card panel">
-          <div class="avatar" aria-hidden="true">
+          <a class="avatar avatar-link" href={withBase("about/")} aria-label="Open about page">
             <span>{site.brand.initials}</span>
-          </div>
+          </a>
           <h1>{site.profile.name}</h1>
           <p>{site.profile.summary}</p>
           <div class="quick-links" aria-label="Quick links">
@@ -131,7 +161,7 @@ const topTags = Array.from(tagCounts.entries())
             Tags
           </div>
           <div class="tag-cloud">
-            {site.profile.tags.map((tag) => <span>{tag}</span>)}
+            {site.profile.tags.map((tag) => <a href={linkHref(tagHref(tag))}>{tag}</a>)}
           </div>
         </section>
       </aside>
@@ -218,9 +248,9 @@ const topTags = Array.from(tagCounts.entries())
               }
             </div>
             <div class="metadata-row">
-              <span>{categories.length || 0} categories</span>
-              <span>{topTags.length || 0} active tags</span>
-              <span>{blogPosts.length} published posts</span>
+              <a href={withBase("blog/")}>{categories.length || 0} categories</a>
+              <a href={withBase("blog/")}>{topTags.length || 0} active tags</a>
+              <a href={withBase("blog/archive/")}>{blogPosts.length} published posts</a>
             </div>
           </article>
 
@@ -314,18 +344,18 @@ const topTags = Array.from(tagCounts.entries())
             <div class="status-grid">
               {
                 site.system.features.map((feature) => (
-                  <article class="status-card">
+                  <a class="status-card" href={linkHref(systemFeatureHref(feature.title))}>
                     <span class={`status-pill ${feature.status}`}>{feature.status}</span>
                     <h3>{feature.title}</h3>
                     <p>{feature.text}</p>
-                  </article>
+                  </a>
                 ))
               }
             </div>
             <section class="widget-card">
               <h3>Sidebar/widget map</h3>
               <div class="widget-cloud">
-                {site.system.widgets.map((widget) => <span>{widget}</span>)}
+                {site.system.widgets.map((widget) => <a href={linkHref(widgetHref(widget))}>{widget}</a>)}
               </div>
             </section>
           </article>

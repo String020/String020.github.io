@@ -12,7 +12,7 @@ export const site = {
     links: [
       { label: "GitHub", href: "https://github.com/String020" },
       { label: "Blog", href: "blog/" },
-      { label: "Email", href: "mailto:your.email@example.com" },
+      { label: "Contact", href: "friends/" },
     ],
     notice: "Portal prototype: the layout now follows a Mizuki-style function map while keeping this site's transparent panel design.",
     tags: ["Blog", "Archive", "Projects", "Study"],
@@ -75,7 +75,7 @@ export const site = {
     ],
     links: [
       { label: "GitHub", value: "github.com/String020", href: "https://github.com/String020" },
-      { label: "Email", value: "your.email@example.com", href: "mailto:your.email@example.com" },
+      { label: "Contact", value: "friends / about", href: "friends/" },
       { label: "Blog", value: "string020.github.io/blog", href: "blog/" },
     ],
   },
