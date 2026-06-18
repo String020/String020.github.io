@@ -7,8 +7,8 @@ export const site = {
   },
   nav: ["STR1NG", "FOR YOU", "UPCOMING", "SCHEDULE", "UPDATES", "BLOG"],
   profile: {
-    name: "Your Name",
-    summary: "CS student building useful tools, clean interfaces, and study systems.",
+    name: "String",
+    summary: "且把悲欢歌唱",
     links: [
       { label: "GitHub", href: "#" },
       { label: "Resume", href: "#" },
@@ -19,7 +19,7 @@ export const site = {
   },
   dashboard: {
     eyebrow: "Dashboard",
-    title: "Welcome back, Your Name.",
+    title: "Welcome back, String.",
     stats: [
       { value: "04", label: "Active projects" },
       { value: "12", label: "Study notes" },
