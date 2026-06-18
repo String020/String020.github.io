@@ -1,0 +1,55 @@
+---
+import { getCollection } from "astro:content";
+import { site } from "../../data/site";
+import "../../styles/global.css";
+
+const posts = (await getCollection("blog"))
+  .filter((post) => !post.data.draft)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
+const base = import.meta.env.BASE_URL;
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
+const formatDate = (date: Date) =>
+  new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "2-digit" }).format(date);
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Blog archive for the personal portal." />
+    <title>Blog | {site.brand.name}</title>
+  </head>
+  <body style={backgroundStyle}>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="soft-wash" aria-hidden="true"></div>
+
+    <main class="blog-shell panel">
+      <a class="back-link" href={withBase()}>Back to portal</a>
+      <header class="blog-header">
+        <p>BLOG</p>
+        <h1>All posts</h1>
+        <span>Markdown files from <code>src/content/blog</code>.</span>
+      </header>
+
+      <section class="blog-list" aria-label="Blog posts">
+        {
+          posts.map((post) => (
+            <a class="blog-row" href={withBase(`blog/${post.id}/`)}>
+              <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+              <div>
+                <h2>{post.data.title}</h2>
+                <p>{post.data.description}</p>
+                <div class="post-tags">
+                  {post.data.tags.map((tag) => <span>{tag}</span>)}
+                </div>
+              </div>
+            </a>
+          ))
+        }
+      </section>
+    </main>
+  </body>
+</html>
