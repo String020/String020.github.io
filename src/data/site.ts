@@ -19,7 +19,7 @@ export const site = {
   },
   dashboard: {
     eyebrow: "String",
-    title: "Personal portal dashboard.",
+    title: "Dashboard.",
     stats: [
       { value: "05", label: "Main sections" },
       { value: "02", label: "Blog posts" },
@@ -28,10 +28,10 @@ export const site = {
     ],
     focus: {
       title: "Current structure",
-      text: "Home works as a dashboard. Blog handles writing. Archives organizes time and taxonomy. My keeps personal interests. About holds profile, skills, projects, and contact.",
+      text: "持续更新中",
       progress: 78,
     },
-    today: ["Replace placeholder profile text", "Add real project links", "Write the first personal blog series"],
+    today: ["增加更多新内容", "完善博客文章", "更新个人资料", "优化网站布局"],
   },
   blog: {
     eyebrow: "Blog",
