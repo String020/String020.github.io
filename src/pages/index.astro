@@ -166,7 +166,7 @@ const tabForGroup = (group: string) =>
       <aside class="profile-column" aria-label="Profile panel">
         <section class="profile-card panel">
           <a class="avatar avatar-link" href={withBase("about/")} aria-label="Open about page">
-            <span>{site.brand.initials}</span>
+            <img src={withBase("assets/profile-photo.jpg")} alt="String profile photo" loading="eager" />
           </a>
           <h1>{site.profile.name}</h1>
           <p>{site.profile.summary}</p>

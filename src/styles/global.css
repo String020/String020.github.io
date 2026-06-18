@@ -297,9 +297,7 @@ a {
 
 .avatar {
   align-items: center;
-  background:
-    radial-gradient(circle at 35% 28%, rgba(247, 246, 241, 0.72) 0 12%, transparent 13%),
-    linear-gradient(145deg, rgba(247, 246, 241, 0.58), rgba(215, 213, 207, 0.5) 44%, rgba(156, 154, 149, 0.34));
+  background: rgba(247, 246, 241, 0.28);
   border: 6px solid rgba(247, 246, 241, 0.28);
   border-radius: 18px;
   display: flex;
@@ -309,17 +307,12 @@ a {
   overflow: hidden;
 }
 
-.avatar span {
-  align-items: center;
-  background: rgba(247, 246, 241, 0.46);
-  border-radius: 999px;
-  color: var(--ink-soft);
-  display: inline-flex;
-  font-size: 2.05rem;
-  font-weight: 820;
-  height: 88px;
-  justify-content: center;
-  width: 88px;
+.avatar img {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  object-position: 52% 42%;
+  width: 100%;
 }
 
 .profile-card h1 {
@@ -1181,12 +1174,6 @@ a {
     grid-row: span 3;
     height: 92px;
     margin: 0;
-  }
-
-  .avatar span {
-    font-size: 1.1rem;
-    height: 52px;
-    width: 52px;
   }
 
   .quick-links {
