@@ -17,6 +17,9 @@ export const sortPosts = (posts: BlogPost[]) =>
     return b.data.date.valueOf() - a.data.date.valueOf();
   });
 
+export const sortPostsByDateOnly = (posts: BlogPost[]) =>
+  [...posts].sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
+
 export const formatDate = (date: Date) => dateFormatter.format(date);
 
 export const slugifyTaxonomy = (value: string) =>
@@ -28,12 +31,23 @@ export const slugifyTaxonomy = (value: string) =>
     .replace(/^-+|-+$/g, "") || "general";
 
 export const getCategory = (post: BlogPost) => post.data.category || "General";
+export const getSeries = (post: BlogPost) => post.data.series?.trim() || "";
 
 export const getAllTags = (posts: BlogPost[]) =>
   Array.from(new Set(posts.flatMap((post) => post.data.tags))).sort((a, b) => a.localeCompare(b));
 
 export const getAllCategories = (posts: BlogPost[]) =>
   Array.from(new Set(posts.map((post) => getCategory(post)))).sort((a, b) => a.localeCompare(b));
+
+export const getAllSeries = (posts: BlogPost[]) =>
+  Array.from(new Set(posts.map((post) => getSeries(post)).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+
+export const getImageUrl = (post: BlogPost, withBase: (path?: string) => string) => {
+  const image = post.data.image?.trim();
+  if (!image) return "";
+  if (/^https?:\/\//i.test(image)) return image;
+  return withBase(image);
+};
 
 const getBody = (post: BlogPost) => {
   const maybePost = post as BlogPost & { body?: string };
@@ -67,3 +81,13 @@ export const groupPostsByYear = (posts: BlogPost[]) =>
     groups[year].push(post);
     return groups;
   }, {});
+
+export const getAdjacentPosts = (posts: BlogPost[], currentPost: BlogPost) => {
+  const orderedPosts = sortPostsByDateOnly(posts);
+  const currentIndex = orderedPosts.findIndex((post) => post.id === currentPost.id);
+
+  return {
+    previous: currentIndex >= 0 ? orderedPosts[currentIndex + 1] : undefined,
+    next: currentIndex > 0 ? orderedPosts[currentIndex - 1] : undefined,
+  };
+};
