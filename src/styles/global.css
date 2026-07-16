@@ -267,7 +267,7 @@ a {
   box-shadow: 0 20px 48px rgba(20, 20, 20, 0.16);
   padding: 10px;
   position: absolute;
-  right: 0;
+  right: 110px;
   top: calc(100% + 10px);
   width: min(310px, calc(100vw - 24px));
   z-index: 20;
@@ -317,6 +317,10 @@ a {
   padding: 0;
 }
 
+.lab-tree-item {
+  position: relative;
+}
+
 .lab-tree-trigger {
   align-items: center;
   background: transparent;
@@ -353,11 +357,85 @@ a {
 }
 
 .lab-tree-branch {
-  border-left: 1px solid rgba(23, 23, 23, 0.16);
+  background: rgba(247, 246, 241, 0.96);
+  border: 1px solid rgba(23, 23, 23, 0.12);
+  border-radius: 13px;
+  box-shadow: 0 18px 42px rgba(20, 20, 20, 0.14);
   color: var(--muted);
+  left: calc(100% + 20px);
+  min-height: 112px;
+  padding: 10px;
+  position: absolute;
+  top: -4px;
+  width: 190px;
+  z-index: 2;
+}
+
+.lab-tree-branch::before {
+  border-color: transparent rgba(23, 23, 23, 0.12) transparent transparent;
+  border-style: solid;
+  border-width: 7px 8px 7px 0;
+  content: "";
+  left: -8px;
+  position: absolute;
+  top: 15px;
+}
+
+.lab-branch-back {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: flex;
+  gap: 7px;
+  min-height: 34px;
+  padding: 6px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.lab-branch-back:hover,
+.lab-branch-back:focus-visible {
+  background: rgba(23, 23, 23, 0.055);
+  outline: none;
+}
+
+.lab-branch-back > span {
+  color: var(--muted);
+  font-size: 1.1rem;
+}
+
+.lab-branch-back strong {
+  font-size: 0.78rem;
+}
+
+.lab-tree-branch p {
+  border-left: 1px solid rgba(23, 23, 23, 0.14);
   font-size: 0.72rem;
-  margin: 0 12px 4px;
-  padding: 5px 0 7px 18px;
+  margin: 7px 8px 4px;
+  padding: 4px 0 4px 12px;
+}
+
+@media (max-width: 1100px) {
+  .lab-menu-panel {
+    right: 0;
+  }
+
+  .lab-tree-item {
+    position: static;
+  }
+
+  .lab-tree-branch {
+    inset: 0;
+    min-height: 100%;
+    width: 100%;
+  }
+
+  .lab-tree-branch::before {
+    display: none;
+  }
 }
 
 .user-bubble {

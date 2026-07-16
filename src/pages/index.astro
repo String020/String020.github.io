@@ -181,7 +181,11 @@ const tabForGroup = (group: string) =>
                       <span class="lab-tree-chevron" aria-hidden="true">›</span>
                     </button>
                     <div class="lab-tree-branch" id={`lab-tree-branch-${index}`} data-lab-tree-branch hidden>
-                      <span>等待开发</span>
+                      <button class="lab-branch-back" type="button" data-lab-branch-back>
+                        <span aria-hidden="true">‹</span>
+                        <strong>{item}</strong>
+                      </button>
+                      <p>等待开发</p>
                     </div>
                   </li>
                 ))
@@ -627,6 +631,7 @@ const tabForGroup = (group: string) =>
       const labMenuToggle = labMenu?.querySelector("[data-lab-menu-toggle]");
       const labMenuPanel = labMenu?.querySelector("[data-lab-menu-panel]");
       const labTreeTriggers = Array.from(labMenu?.querySelectorAll("[data-lab-tree-trigger]") || []);
+      const labBranchBacks = Array.from(labMenu?.querySelectorAll("[data-lab-branch-back]") || []);
 
       function collapseLabBranches(exceptTrigger = null) {
         labTreeTriggers.forEach((trigger) => {
@@ -664,6 +669,20 @@ const tabForGroup = (group: string) =>
         });
       });
 
+      labBranchBacks.forEach((backButton) => {
+        backButton.addEventListener("click", () => {
+          const branch = backButton.closest("[data-lab-tree-branch]");
+          const trigger = branch?.id
+            ? labTreeTriggers.find((item) => item.getAttribute("aria-controls") === branch.id)
+            : null;
+          if (branch) branch.hidden = true;
+          if (trigger) {
+            trigger.setAttribute("aria-expanded", "false");
+            trigger.focus();
+          }
+        });
+      });
+
       document.addEventListener("click", (event) => {
         if (labMenu && !labMenu.contains(event.target)) {
           setLabMenuOpen(false);
@@ -682,7 +701,13 @@ const tabForGroup = (group: string) =>
 
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && labMenuToggle?.getAttribute("aria-expanded") === "true") {
-          setLabMenuOpen(false, true);
+          const expandedTrigger = labTreeTriggers.find((trigger) => trigger.getAttribute("aria-expanded") === "true");
+          if (expandedTrigger) {
+            collapseLabBranches();
+            expandedTrigger.focus();
+          } else {
+            setLabMenuOpen(false, true);
+          }
         }
       });
 
