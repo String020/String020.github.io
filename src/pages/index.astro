@@ -144,11 +144,51 @@ const tabForGroup = (group: string) =>
           </svg>
           <span>Search blog</span>
         </a>
-        <a class="tool-button dot-grid" href={withBase("lab/")} aria-label="Open lab">
-          <span></span><span></span><span></span>
-          <span></span><span></span><span></span>
-          <span></span><span></span><span></span>
-        </a>
+        <div class="lab-menu" data-lab-menu>
+          <button
+            class="tool-button dot-grid"
+            type="button"
+            aria-label="Open lab menu"
+            aria-expanded="false"
+            aria-controls="lab-menu-panel"
+            data-lab-menu-toggle
+          >
+            <span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+          </button>
+          <div class="lab-menu-panel" id="lab-menu-panel" aria-label="Lab menu" data-lab-menu-panel hidden>
+            <a class="lab-menu-home" href={withBase("lab/")}>
+              <span>
+                <strong>Lab</strong>
+                <small>进入 Lab 首页</small>
+              </span>
+              <span aria-hidden="true">↗</span>
+            </a>
+            <ul class="lab-menu-tree" aria-label="Lab features">
+              {
+                site.lab.items.map((item, index) => (
+                  <li class="lab-tree-item" data-lab-tree-item>
+                    <button
+                      class="lab-tree-trigger"
+                      type="button"
+                      aria-expanded="false"
+                      aria-controls={`lab-tree-branch-${index}`}
+                      data-lab-tree-trigger
+                    >
+                      <span class="lab-tree-marker" aria-hidden="true"></span>
+                      <span>{item}</span>
+                      <span class="lab-tree-chevron" aria-hidden="true">›</span>
+                    </button>
+                    <div class="lab-tree-branch" id={`lab-tree-branch-${index}`} data-lab-tree-branch hidden>
+                      <span>等待开发</span>
+                    </div>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+        </div>
         <a class="tool-button" href={withBase("contact/")} aria-label="Open contact links">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M5.4 6.2h13.2a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-6.1l-4.1 3v-3h-3a2 2 0 0 1-2-2V8.2a2 2 0 0 1 2-2Z"></path>
@@ -583,7 +623,52 @@ const tabForGroup = (group: string) =>
         });
       });
 
+      const labMenu = document.querySelector("[data-lab-menu]");
+      const labMenuToggle = labMenu?.querySelector("[data-lab-menu-toggle]");
+      const labMenuPanel = labMenu?.querySelector("[data-lab-menu-panel]");
+      const labTreeTriggers = Array.from(labMenu?.querySelectorAll("[data-lab-tree-trigger]") || []);
+
+      function collapseLabBranches(exceptTrigger = null) {
+        labTreeTriggers.forEach((trigger) => {
+          if (trigger === exceptTrigger) return;
+          trigger.setAttribute("aria-expanded", "false");
+          const branchId = trigger.getAttribute("aria-controls");
+          const branch = branchId ? document.getElementById(branchId) : null;
+          if (branch) branch.hidden = true;
+        });
+      }
+
+      function setLabMenuOpen(open, returnFocus = false) {
+        if (!labMenuToggle || !labMenuPanel) return;
+        labMenuToggle.setAttribute("aria-expanded", String(open));
+        labMenuPanel.hidden = !open;
+        labMenu.classList.toggle("is-open", open);
+        if (!open) {
+          collapseLabBranches();
+          if (returnFocus) labMenuToggle.focus();
+        }
+      }
+
+      labMenuToggle?.addEventListener("click", () => {
+        setLabMenuOpen(labMenuToggle.getAttribute("aria-expanded") !== "true");
+      });
+
+      labTreeTriggers.forEach((trigger) => {
+        trigger.addEventListener("click", () => {
+          const willOpen = trigger.getAttribute("aria-expanded") !== "true";
+          collapseLabBranches(trigger);
+          trigger.setAttribute("aria-expanded", String(willOpen));
+          const branchId = trigger.getAttribute("aria-controls");
+          const branch = branchId ? document.getElementById(branchId) : null;
+          if (branch) branch.hidden = !willOpen;
+        });
+      });
+
       document.addEventListener("click", (event) => {
+        if (labMenu && !labMenu.contains(event.target)) {
+          setLabMenuOpen(false);
+        }
+
         const link = event.target.closest("a[href]");
         if (!link || link.target || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 
@@ -591,6 +676,13 @@ const tabForGroup = (group: string) =>
         if (route === null) return;
         if (openRoute(route)) {
           event.preventDefault();
+          setLabMenuOpen(false);
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && labMenuToggle?.getAttribute("aria-expanded") === "true") {
+          setLabMenuOpen(false, true);
         }
       });
 
