@@ -292,31 +292,6 @@ a {
   display: none;
 }
 
-.lab-menu-home {
-  align-items: center;
-  border-bottom: 1px solid rgba(23, 23, 23, 0.09);
-  border-radius: 10px 10px 4px 4px;
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 11px 12px;
-}
-
-.lab-menu-home > span:first-child {
-  display: grid;
-  gap: 2px;
-}
-
-.lab-menu-home strong {
-  font-size: 0.88rem;
-}
-
-.lab-menu-home small {
-  color: var(--muted);
-  font-size: 0.7rem;
-}
-
-.lab-menu-home:hover,
-.lab-menu-home:focus-visible,
 .lab-tree-trigger:hover,
 .lab-tree-trigger:focus-visible {
   background: rgba(23, 23, 23, 0.055);
@@ -327,7 +302,7 @@ a {
   display: grid;
   gap: 2px;
   list-style: none;
-  margin: 8px 0 0;
+  margin: 0;
   padding: 0;
 }
 

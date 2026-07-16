@@ -145,7 +145,7 @@ export const site = {
   lab: {
     eyebrow: "Lab",
     title: "Future 3x3 widget space.",
-    description: "The dot-grid icon opens this page. Keep it as a clean waiting room for future widgets, experiments, and small tools.",
+    description: "The dot-grid icon opens a compact menu for future widgets, experiments, and small tools.",
     items: ["Widget dock", "Mini apps", "Layout presets", "Theme switcher", "Music widget", "Guestbook later"],
   },
   featurePages: [
@@ -238,15 +238,6 @@ export const site = {
       description: "Contact routes, profile links, and future message integrations.",
       status: "Draft",
       items: ["GitHub", "Email later", "Social links", "Message widget later"],
-    },
-    {
-      slug: "lab",
-      group: "Lab",
-      badge: "LB",
-      title: "Lab",
-      description: "A waiting room for the 3x3 icon, future widgets, and experimental interactions.",
-      status: "Planned",
-      items: ["Widget dock", "Mini apps", "Layout presets", "Theme switcher", "Music widget", "Guestbook later"],
     },
   ],
 } as const;

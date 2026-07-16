@@ -74,7 +74,7 @@ const sectionItemHref = (featureSlug: string, item: string) => {
     GitHub: "https://github.com/String020",
     "Email later": "contact/",
     "Social links": "contact/",
-    "Message widget later": "lab/",
+    "Message widget later": "contact/",
   };
 
   if (featureSlug === "archives" && archiveLinks[item]) return archiveLinks[item];
@@ -158,13 +158,6 @@ const tabForGroup = (group: string) =>
             <span></span><span></span><span></span>
           </button>
           <div class="lab-menu-panel" id="lab-menu-panel" aria-label="Lab menu" data-lab-menu-panel hidden>
-            <a class="lab-menu-home" href={withBase("lab/")}>
-              <span>
-                <strong>Lab</strong>
-                <small>进入 Lab 首页</small>
-              </span>
-              <span aria-hidden="true">↗</span>
-            </a>
             <ul class="lab-menu-tree" aria-label="Lab features">
               {
                 site.lab.items.map((item, index) => (
