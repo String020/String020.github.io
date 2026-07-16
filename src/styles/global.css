@@ -269,8 +269,8 @@ a {
   padding: 10px;
   pointer-events: none;
   position: absolute;
-  right: 110px;
-  top: calc(100% + 10px);
+  right: clamp(8px, calc(1280px - 100vw), 96px);
+  top: calc(100% + 6px);
   transform: translate3d(0, -10px, 0) scale(0.985);
   transform-origin: top right;
   transition:
