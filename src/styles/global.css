@@ -252,6 +252,114 @@ a {
   width: 4px;
 }
 
+.lab-menu {
+  position: relative;
+}
+
+.lab-menu.is-open .dot-grid {
+  background: rgba(247, 246, 241, 0.58);
+}
+
+.lab-menu-panel {
+  background: rgba(247, 246, 241, 0.94);
+  border: 1px solid rgba(23, 23, 23, 0.12);
+  border-radius: 16px;
+  box-shadow: 0 20px 48px rgba(20, 20, 20, 0.16);
+  padding: 10px;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  width: min(310px, calc(100vw - 24px));
+  z-index: 20;
+}
+
+.lab-menu-panel[hidden],
+.lab-tree-branch[hidden] {
+  display: none;
+}
+
+.lab-menu-home {
+  align-items: center;
+  border-bottom: 1px solid rgba(23, 23, 23, 0.09);
+  border-radius: 10px 10px 4px 4px;
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 11px 12px;
+}
+
+.lab-menu-home > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.lab-menu-home strong {
+  font-size: 0.88rem;
+}
+
+.lab-menu-home small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.lab-menu-home:hover,
+.lab-menu-home:focus-visible,
+.lab-tree-trigger:hover,
+.lab-tree-trigger:focus-visible {
+  background: rgba(23, 23, 23, 0.055);
+  outline: none;
+}
+
+.lab-menu-tree {
+  display: grid;
+  gap: 2px;
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.lab-tree-trigger {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 9px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  display: grid;
+  font-size: 0.8rem;
+  font-weight: 700;
+  gap: 9px;
+  grid-template-columns: 8px minmax(0, 1fr) auto;
+  min-height: 36px;
+  padding: 7px 9px;
+  text-align: left;
+  width: 100%;
+}
+
+.lab-tree-marker {
+  background: var(--ash);
+  border-radius: 50%;
+  height: 5px;
+  width: 5px;
+}
+
+.lab-tree-chevron {
+  color: var(--muted);
+  font-size: 1rem;
+  transition: transform 160ms ease;
+}
+
+.lab-tree-trigger[aria-expanded="true"] .lab-tree-chevron {
+  transform: rotate(90deg);
+}
+
+.lab-tree-branch {
+  border-left: 1px solid rgba(23, 23, 23, 0.16);
+  color: var(--muted);
+  font-size: 0.72rem;
+  margin: 0 12px 4px;
+  padding: 5px 0 7px 18px;
+}
+
 .user-bubble {
   background: linear-gradient(145deg, rgba(247, 246, 241, 0.68), rgba(215, 213, 207, 0.62));
   border: 2px solid rgba(247, 246, 241, 0.42);
@@ -1104,6 +1212,10 @@ a {
   }
 
   .header-actions {
+    display: flex;
+  }
+
+  .header-actions > :not(.lab-menu) {
     display: none;
   }
 
@@ -1136,6 +1248,12 @@ a {
 
   .portal-brand {
     justify-content: center;
+  }
+
+  .header-actions {
+    position: absolute;
+    right: 10px;
+    top: 10px;
   }
 
   .tabs {
