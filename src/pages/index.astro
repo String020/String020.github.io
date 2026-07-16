@@ -632,6 +632,44 @@ const tabForGroup = (group: string) =>
       const labMenuPanel = labMenu?.querySelector("[data-lab-menu-panel]");
       const labTreeTriggers = Array.from(labMenu?.querySelectorAll("[data-lab-tree-trigger]") || []);
       const labBranchBacks = Array.from(labMenu?.querySelectorAll("[data-lab-branch-back]") || []);
+      const labLayerTimers = new WeakMap();
+      const labReduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      function clearLabLayerTimer(layer) {
+        const timer = labLayerTimers.get(layer);
+        if (timer) window.clearTimeout(timer);
+        labLayerTimers.delete(layer);
+      }
+
+      function showLabLayer(layer) {
+        if (!layer) return;
+        clearLabLayerTimer(layer);
+        layer.hidden = false;
+        layer.dataset.state = "opening";
+        if (labReduceMotion) {
+          layer.dataset.state = "open";
+          return;
+        }
+        layer.getBoundingClientRect();
+        layer.dataset.state = "open";
+      }
+
+      function hideLabLayer(layer) {
+        if (!layer || layer.hidden || layer.dataset.state === "closing") return;
+        clearLabLayerTimer(layer);
+        layer.dataset.state = "closing";
+        const finish = () => {
+          if (layer.dataset.state !== "closing") return;
+          layer.hidden = true;
+          layer.removeAttribute("data-state");
+          labLayerTimers.delete(layer);
+        };
+        if (labReduceMotion) {
+          finish();
+          return;
+        }
+        labLayerTimers.set(layer, window.setTimeout(finish, 240));
+      }
 
       function collapseLabBranches(exceptTrigger = null) {
         labTreeTriggers.forEach((trigger) => {
@@ -639,15 +677,16 @@ const tabForGroup = (group: string) =>
           trigger.setAttribute("aria-expanded", "false");
           const branchId = trigger.getAttribute("aria-controls");
           const branch = branchId ? document.getElementById(branchId) : null;
-          if (branch) branch.hidden = true;
+          hideLabLayer(branch);
         });
       }
 
       function setLabMenuOpen(open, returnFocus = false) {
         if (!labMenuToggle || !labMenuPanel) return;
         labMenuToggle.setAttribute("aria-expanded", String(open));
-        labMenuPanel.hidden = !open;
         labMenu.classList.toggle("is-open", open);
+        if (open) showLabLayer(labMenuPanel);
+        else hideLabLayer(labMenuPanel);
         if (!open) {
           collapseLabBranches();
           if (returnFocus) labMenuToggle.focus();
@@ -665,7 +704,8 @@ const tabForGroup = (group: string) =>
           trigger.setAttribute("aria-expanded", String(willOpen));
           const branchId = trigger.getAttribute("aria-controls");
           const branch = branchId ? document.getElementById(branchId) : null;
-          if (branch) branch.hidden = !willOpen;
+          if (willOpen) showLabLayer(branch);
+          else hideLabLayer(branch);
         });
       });
 
@@ -675,7 +715,7 @@ const tabForGroup = (group: string) =>
           const trigger = branch?.id
             ? labTreeTriggers.find((item) => item.getAttribute("aria-controls") === branch.id)
             : null;
-          if (branch) branch.hidden = true;
+          hideLabLayer(branch);
           if (trigger) {
             trigger.setAttribute("aria-expanded", "false");
             trigger.focus();
