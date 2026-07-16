@@ -158,6 +158,10 @@ const tabForGroup = (group: string) =>
             <span></span><span></span><span></span>
           </button>
           <div class="lab-menu-panel" id="lab-menu-panel" aria-label="Lab menu" data-lab-menu-panel hidden>
+            <div class="lab-menu-heading">
+              <strong>{site.lab.eyebrow}</strong>
+              <small>功能菜单</small>
+            </div>
             <ul class="lab-menu-tree" aria-label="Lab features">
               {
                 site.lab.items.map((item, index) => (
