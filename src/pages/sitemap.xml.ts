@@ -1,6 +1,7 @@
 import { getCollection } from "astro:content";
 import { site as siteData } from "../data/site";
 import { getAllCategories, getAllSeries, getAllTags, isPublished, slugifyTaxonomy, sortPosts } from "../lib/blog";
+import { managedNavigation, portalContent } from "../lib/portal-content";
 
 const escapeXml = (value: string) =>
   value
@@ -21,18 +22,20 @@ export async function GET({ site }: { site?: URL }) {
   const categories = getAllCategories(posts);
   const seriesList = getAllSeries(posts);
 
-  const paths = [
+  const paths = Array.from(new Set([
     "/",
     "/blog/",
     "/blog/archive/",
     "/blog/writing-guide/",
     "/search/",
     ...siteData.featurePages.map((page) => `/${page.slug}/`),
+    ...managedNavigation.map((item) => `/${item.slug}/`),
+    ...portalContent.pages.map((page) => `/${page.route.replace(/^\/+|\/+$/g, "")}/`),
     ...posts.map((post) => `/blog/${post.id}/`),
     ...tags.map((tag) => `/blog/tag/${slugifyTaxonomy(tag)}/`),
     ...categories.map((category) => `/blog/category/${slugifyTaxonomy(category)}/`),
     ...seriesList.map((series) => `/blog/series/${slugifyTaxonomy(series)}/`),
-  ];
+  ]));
 
   const urls = paths
     .map((path) => `  <url><loc>${escapeXml(makeUrl(origin, base, path))}</loc></url>`)

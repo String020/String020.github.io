@@ -1,6 +1,9 @@
 ---
 import { getCollection, render } from "astro:content";
+import ManagedCardGrid from "../components/ManagedCardGrid.astro";
+import RichContent from "../components/RichContent.astro";
 import { site } from "../data/site";
+import { managedNavigation, portalContent } from "../lib/portal-content";
 import "../styles/global.css";
 import "../styles/blog-features.css";
 
@@ -34,7 +37,13 @@ const tagHref = (tag: string) =>
     Study: "blog/tag/notes/",
   })[tag] ?? `search/?q=${encodeURIComponent(tag)}`;
 const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
-const pageCount = site.nav.length + site.featurePages.length + renderedBlogPosts.length + 1;
+const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site) : null;
+const navigation = portalContent.navigation;
+const pageCount = navigation.length + portalContent.pages.length + renderedBlogPosts.length + 1;
+const tabIndexByNavigationId = new Map(navigation.map((item, index) => [item.id, index]));
+const editorScriptUrl = withBase("assets/portal-editor.js");
+const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL || "";
+const serializedPortalContent = JSON.stringify(portalContent).replace(/</g, "\\u003c");
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "2-digit" }).format(date);
 const dashboardStats = site.dashboard.stats.map((stat) =>
@@ -48,60 +57,22 @@ const tagCounts = blogPosts.reduce((counts, post) => {
 const topTags = Array.from(tagCounts.entries())
   .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   .slice(0, 8);
-const searchHref = (query: string) => `search/?q=${encodeURIComponent(query)}`;
-const sectionItemHref = (featureSlug: string, item: string) => {
-  const archiveLinks: Record<string, string> = {
-    "Blog timeline": "blog/archive/",
-    "Pinned posts": "blog/",
-    Categories: "blog/",
-    Tags: "blog/",
-    "RSS feed": "rss.xml",
-    Sitemap: "sitemap.xml",
-  };
-  const myLinks: Record<string, string> = {
-    Anime: "anime/",
-    Music: "music/",
-    Devices: "devices/",
-    Collection: "collection/",
-  };
-  const aboutLinks: Record<string, string> = {
-    Profile: "about/",
-    "Study direction": "about/",
-    Interests: "my/",
-    Contact: "contact/",
-  };
-  const contactLinks: Record<string, string> = {
-    GitHub: "https://github.com/String020",
-    "Email later": "contact/",
-    "Social links": "contact/",
-    "Message widget later": "contact/",
-  };
-
-  if (featureSlug === "archives" && archiveLinks[item]) return archiveLinks[item];
-  if (featureSlug === "my" && myLinks[item]) return myLinks[item];
-  if (featureSlug === "about" && aboutLinks[item]) return aboutLinks[item];
-  if (featureSlug === "contact" && contactLinks[item]) return contactLinks[item];
-  if (featureSlug === "projects") return "projects/";
-  if (featureSlug === "skills") return searchHref(item);
-  return searchHref(`${featureSlug} ${item}`);
-};
-const tabForGroup = (group: string) =>
-  ({
-    Archives: 2,
-    My: 3,
-    About: 4,
-  })[group];
 ---
 
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content={site.description} />
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={site.title} />
+    <meta property="og:description" content={site.description} />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
     <title>{site.title}</title>
   </head>
-  <body style={backgroundStyle}>
+  <body style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base}>
     <div class="backdrop" aria-hidden="true"></div>
     <div class="soft-wash" aria-hidden="true"></div>
 
@@ -118,13 +89,20 @@ const tabForGroup = (group: string) =>
 
       <nav class="tabs" aria-label="Portal pages">
         {
-          site.nav.map((item, index) => (
-            <button class={`tab ${index === 0 ? "is-active" : ""}`} type="button" data-page={index}>
-              {item}
+          navigation.map((item, index) => (
+            <button
+              class={`tab ${index === 0 ? "is-active" : ""}`}
+              type="button"
+              data-page={index}
+              data-navigation-tab
+              data-navigation-id={item.id}
+              data-navigation-locked={String(item.locked)}
+            >
+              {item.label}
             </button>
           ))
         }
-        <a class="tool-button compact" href={withBase("archives/")} aria-label="Open archives">
+        <button class="tool-button compact editor-entry" type="button" aria-label="Enter edit mode" data-editor-toggle hidden>
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 7h9"></path>
             <path d="M17 7h3"></path>
@@ -133,7 +111,7 @@ const tabForGroup = (group: string) =>
             <path d="M11 17h9"></path>
             <path d="M9 15v4"></path>
           </svg>
-        </a>
+        </button>
       </nav>
 
       <div class="header-actions" aria-label="Header actions">
@@ -314,194 +292,62 @@ const tabForGroup = (group: string) =>
             </div>
           </article>
 
-          <article class="page" data-panel="archive" data-route-main="archives/" data-tab="2">
-            <div class="page-heading">
-              <p>{site.archives.eyebrow}</p>
-              <h2>{site.archives.title}</h2>
-            </div>
-            <p class="page-intro">{site.archives.intro}</p>
-            <div class="feature-grid">
-              {
-                site.archives.cards.map((card) => (
-                  <a class="directory-card" href={linkHref(card.href)}>
-                    <span>{card.badge}</span>
-                    <h3>{card.title}</h3>
-                    <p>{card.text}</p>
-                  </a>
-                ))
-              }
-            </div>
-            <div class="metadata-row">
-              <a href={withBase("blog/")}>{categories.length || 0} categories</a>
-              <a href={withBase("blog/")}>{topTags.length || 0} active tags</a>
-              <a href={withBase("blog/archive/")}>{blogPosts.length} published posts</a>
-            </div>
-          </article>
-
-          <article class="page" data-panel="my" data-route-main="my/" data-tab="3">
-            <div class="page-heading">
-              <p>{site.mySpace.eyebrow}</p>
-              <h2>{site.mySpace.title}</h2>
-            </div>
-            <div class="feature-grid">
-              {
-                site.mySpace.pages.map((page) => (
-                  <a class="directory-card" href={withBase(`${page.slug}/`)}>
-                    <span>{page.badge}</span>
-                    <h3>{page.title}</h3>
-                    <p>{page.text}</p>
-                  </a>
-                ))
-              }
-            </div>
-          </article>
-
-          <article class="page" data-panel="about" data-route-main="about/" data-tab="4">
-            <div class="page-heading">
-              <p>{site.about.eyebrow}</p>
-              <h2>{site.about.title}</h2>
-            </div>
-            <div class="network-grid">
-              <div class="feature-grid compact">
-                {
-                  site.about.pages.map((page) => (
-                    <a class="directory-card" href={withBase(`${page.slug}/`)}>
-                      <span>{page.badge}</span>
-                      <h3>{page.title}</h3>
-                      <p>{page.text}</p>
-                    </a>
-                  ))
-                }
-              </div>
-              <div class="contact-grid">
-                {
-                  site.about.links.map((link) => (
-                    <a href={linkHref(link.href)}>
-                      <span>{link.label}</span>
-                      {link.value}
-                    </a>
-                  ))
-                }
-              </div>
-            </div>
-            <div class="compact-card-list">
-              {
-                site.build.projects.map((project, index) => (
-                  <article class="project-item">
-                    <span class={`project-icon tone-${["a", "b", "c"][index % 3]}`}>
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <div>
-                      <h3>{project.title}</h3>
-                      <p>{project.text}</p>
-                    </div>
-                    <a href={linkHref(project.href)}>View</a>
-                  </article>
-                ))
-              }
-            </div>
-          </article>
+          {
+            managedNavigation.map((navigationItem) => (
+              <article
+                class="page managed-navigation-page"
+                data-panel={navigationItem.id}
+                data-route={`${navigationItem.slug}/`}
+                data-tab={tabIndexByNavigationId.get(navigationItem.id)}
+                data-navigation-panel
+                data-navigation-id={navigationItem.id}
+              >
+                <div class="page-heading">
+                  <p>Navigation</p>
+                  <h2 data-navigation-title>{navigationItem.title}</h2>
+                </div>
+                <p class="page-intro" data-navigation-description>{navigationItem.description}</p>
+                <ManagedCardGrid
+                  blocks={navigationItem.blocks}
+                  pages={portalContent.pages}
+                  base={base}
+                  navigationId={navigationItem.id}
+                />
+                {navigationItem.id === "archives" && (
+                  <div class="metadata-row">
+                    <a href={withBase("blog/")}>{categories.length || 0} categories</a>
+                    <a href={withBase("blog/")}>{topTags.length || 0} active tags</a>
+                    <a href={withBase("blog/archive/")}>{blogPosts.length} published posts</a>
+                  </div>
+                )}
+              </article>
+            ))
+          }
 
           {
-            site.featurePages.map((featurePage) => (
+            portalContent.pages.map((managedPage) => (
               <article
-                class="page detail-page"
-                data-panel={`detail-${featurePage.slug}`}
-                data-route={`${featurePage.slug}/`}
-                data-tab={tabForGroup(featurePage.group)}
+                class="page detail-page managed-detail-page"
+                data-panel={`managed-${managedPage.id}`}
+                data-route={`${managedPage.route}/`}
+                data-tab={tabIndexByNavigationId.get(managedPage.parentNavigationId)}
+                data-managed-page
+                data-page-id={managedPage.id}
               >
-                <a class="panel-back" href={withBase()} data-portal-route="">Back to dashboard</a>
+                <a
+                  class="panel-back"
+                  href={withBase(`${portalContent.navigation.find((item) => item.id === managedPage.parentNavigationId)?.slug || ""}/`)}
+                  data-portal-route={`${portalContent.navigation.find((item) => item.id === managedPage.parentNavigationId)?.slug || ""}/`}
+                >
+                  Back to {portalContent.navigation.find((item) => item.id === managedPage.parentNavigationId)?.title || "dashboard"}
+                </a>
                 <header class="section-header">
-                  <p>{featurePage.group}</p>
-                  <div>
-                    <span class="section-badge">{featurePage.badge}</span>
-                    <span class={`status-pill ${featurePage.status.toLowerCase()}`}>{featurePage.status}</span>
-                  </div>
-                  <h1>{featurePage.title}</h1>
-                  <span>{featurePage.description}</span>
+                  <p>{portalContent.navigation.find((item) => item.id === managedPage.parentNavigationId)?.title || "Page"}</p>
+                  <div><span class="section-badge" data-managed-page-badge>{managedPage.badge}</span></div>
+                  <h1 data-managed-page-title>{managedPage.title}</h1>
+                  <span data-managed-page-description>{managedPage.description}</span>
                 </header>
-
-                <section class="section-grid" aria-label={`${featurePage.title} feature list`}>
-                  {featurePage.items.map((item, index) => (
-                    <a class="section-tile" href={linkHref(sectionItemHref(featurePage.slug, item))}>
-                      <span>{String(index + 1).padStart(2, "0")}</span>
-                      <h2>{item}</h2>
-                      <p>Open this route inside the portal panel. Replace this card later when the feature becomes concrete.</p>
-                    </a>
-                  ))}
-                </section>
-
-                {featurePage.slug === "archives" && (
-                  <section class="section-block" aria-label="Archive posts">
-                    <h2>Published posts</h2>
-                    <div class="blog-list">
-                      {blogPosts.map((post) => (
-                        <a class="blog-row" href={withBase(`blog/${post.id}/`)}>
-                          <time datetime={getPostDate(post).toISOString()}>{formatDate(getPostDate(post))}</time>
-                          <div>
-                            <div class="post-meta-line">
-                              {post.data.pinned && <span>Pinned</span>}
-                              {post.data.category && <span>{post.data.category}</span>}
-                            </div>
-                            <h2>{post.data.title}</h2>
-                            <p>{post.data.description}</p>
-                          </div>
-                        </a>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {featurePage.slug === "projects" && (
-                  <section class="section-block" aria-label="Project cards">
-                    <h2>Project cards</h2>
-                    <div class="compact-card-list">
-                      {site.build.projects.map((project, index) => (
-                        <article class="project-item">
-                          <span class={`project-icon tone-${["a", "b", "c"][index % 3]}`}>
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
-                          <div>
-                            <h3>{project.title}</h3>
-                            <p>{project.text}</p>
-                          </div>
-                          <a href={linkHref(project.href)}>View</a>
-                        </article>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {featurePage.slug === "skills" && (
-                  <section class="section-block" aria-label="Skill cards">
-                    <h2>Skill cards</h2>
-                    <div class="skill-grid">
-                      {site.skills.items.map((skill) => (
-                        <article class="skill-item">
-                          <div class="skill-badge">{skill.badge}</div>
-                          <h3>{skill.title}</h3>
-                          <p>{skill.text}</p>
-                          <div class="meter"><span style={`width: ${skill.progress}%`}></span></div>
-                          <a class="text-link inline-action" href={withBase(searchHref(skill.title))}>Search notes</a>
-                        </article>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-                {featurePage.slug === "contact" && (
-                  <section class="section-block" aria-label="Contact links">
-                    <h2>Contact routes</h2>
-                    <div class="contact-grid">
-                      {site.about.links.map((link) => (
-                        <a href={linkHref(link.href)}>
-                          <span>{link.label}</span>
-                          {link.value}
-                        </a>
-                      ))}
-                    </div>
-                  </section>
-                )}
+                <RichContent blocks={managedPage.content} base={base} />
               </article>
             ))
           }
@@ -549,26 +395,241 @@ const tabForGroup = (group: string) =>
       </section>
     </main>
 
+    <aside class="editor-toolbar" data-editor-toolbar hidden aria-label="Edit controls">
+      <div class="editor-toolbar-state">
+        <span class="editor-live-dot" aria-hidden="true"></span>
+        <strong>Edit mode</strong>
+        <small data-editor-status>Draft loaded</small>
+      </div>
+      <div class="editor-toolbar-actions">
+        <button type="button" class="editor-button" data-add-navigation>Add navigation</button>
+        <button type="button" class="editor-button" data-add-card>Add block</button>
+        <button type="button" class="editor-button" data-preview-draft>Preview</button>
+        <button type="button" class="editor-button" data-release-history>Releases</button>
+        <button type="button" class="editor-button editor-button--primary" data-publish-draft>Publish</button>
+        <button type="button" class="editor-icon-button" data-exit-editor aria-label="Exit edit mode">×</button>
+      </div>
+    </aside>
+
+    <dialog class="editor-dialog" data-navigation-dialog>
+      <form class="editor-form" data-navigation-form>
+        <header>
+          <div>
+            <small>Navigation</small>
+            <h2 data-navigation-dialog-title>Add navigation</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <input type="hidden" name="navigationId" />
+        <label>
+          Page title
+          <input name="title" maxlength="60" required placeholder="Article" />
+        </label>
+        <label>
+          Navigation label
+          <input name="label" maxlength="18" required placeholder="ARTICLE" />
+        </label>
+        <label>
+          Page address
+          <span class="editor-input-prefix">/ <input name="slug" maxlength="64" required placeholder="article" /> /</span>
+        </label>
+        <label>
+          Description
+          <textarea name="description" maxlength="240" rows="3" required placeholder="What this section contains."></textarea>
+        </label>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Cancel</button>
+          <button type="submit" class="editor-button editor-button--primary">Save navigation</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="editor-dialog" data-card-dialog>
+      <form class="editor-form" data-card-form>
+        <header>
+          <div>
+            <small>Block</small>
+            <h2 data-card-dialog-title>Add block</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <input type="hidden" name="navigationId" />
+        <input type="hidden" name="cardId" />
+        <div class="editor-field-row">
+          <label>
+            Block type
+            <select name="type">
+              <option value="text">Information block</option>
+              <option value="page">Page block</option>
+            </select>
+          </label>
+          <label>
+            Width
+            <select name="width">
+              <option value="half">Half width</option>
+              <option value="full">Full row</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          Badge
+          <input name="badge" maxlength="4" required placeholder="AR" />
+        </label>
+        <label>
+          Title
+          <input name="title" maxlength="80" required placeholder="Article" />
+        </label>
+        <label>
+          Summary
+          <textarea name="summary" maxlength="320" rows="3" required placeholder="A short description shown on the block."></textarea>
+        </label>
+        <div class="editor-field-row">
+          <label>
+            Image URL <small>(optional)</small>
+            <input name="imageSrc" type="url" placeholder="https://…" />
+          </label>
+          <label>
+            Upload image <small>(JPG, PNG, WebP · 10 MB)</small>
+            <input name="imageFile" type="file" accept="image/jpeg,image/png,image/webp" />
+          </label>
+        </div>
+        <div class="editor-field-row">
+          <label>
+            Image alt text
+            <input name="imageAlt" maxlength="160" placeholder="Describe the image" />
+          </label>
+          <label>
+            Image caption
+            <input name="imageCaption" maxlength="180" placeholder="Optional caption" />
+          </label>
+        </div>
+        <div data-page-card-fields hidden>
+          <label>
+            Destination
+            <select name="destinationKind">
+              <option value="new-page">Create a new page</option>
+              <option value="url">Open an existing URL</option>
+            </select>
+          </label>
+          <label data-card-url-field hidden>
+            URL
+            <input name="destinationUrl" placeholder="https://… or /path/" />
+          </label>
+        </div>
+        <div class="editor-field-row" data-text-card-fields>
+          <label>
+            Link button label <small>(optional)</small>
+            <input name="actionLabel" maxlength="40" placeholder="Open resource" />
+          </label>
+          <label>
+            Link button URL
+            <input name="actionHref" placeholder="https://… or /path/" />
+          </label>
+        </div>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Cancel</button>
+          <button type="submit" class="editor-button editor-button--primary">Save block</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="editor-dialog editor-dialog--danger" data-delete-dialog>
+      <form class="editor-form" data-delete-form>
+        <header>
+          <div>
+            <small>Permanent deletion</small>
+            <h2 data-delete-title>Delete item</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <p data-delete-summary></p>
+        <dl class="editor-impact-list" data-delete-impact></dl>
+        <label data-delete-confirm-field hidden>
+          Type <strong data-delete-confirm-name></strong> to confirm
+          <input name="confirmation" autocomplete="off" />
+        </label>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Cancel</button>
+          <button type="submit" class="editor-button editor-button--danger" data-confirm-delete>Delete permanently</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="editor-dialog" data-releases-dialog>
+      <section class="editor-form">
+        <header>
+          <div>
+            <small>Published versions</small>
+            <h2>Release history</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <p>Up to 20 content releases are shown. Restoring creates a new commit and keeps the existing history.</p>
+        <div class="editor-release-list" data-release-list aria-live="polite">
+          <p>Loading releases...</p>
+        </div>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Close</button>
+        </footer>
+      </section>
+    </dialog>
+
+    <section class="page-editor" data-page-editor hidden aria-label="Page content editor">
+      <header class="page-editor-header">
+        <button type="button" class="editor-button" data-close-page-editor>← Back</button>
+        <div>
+          <small>Page editor</small>
+          <strong data-page-editor-title>Untitled page</strong>
+        </div>
+        <div class="page-editor-header-actions">
+          <button type="button" class="editor-button" data-page-editor-preview>Preview</button>
+          <button type="button" class="editor-button editor-button--primary" data-close-page-editor>Save draft</button>
+        </div>
+      </header>
+      <div class="page-editor-layout">
+        <aside class="page-editor-palette" aria-label="Content blocks">
+          <strong>Add content</strong>
+          <button type="button" data-add-rich-block="paragraph">Paragraph</button>
+          <button type="button" data-add-rich-block="heading">Heading</button>
+          <button type="button" data-add-rich-block="image">Image</button>
+          <button type="button" data-add-rich-block="list">List</button>
+          <button type="button" data-add-rich-block="link">Link button</button>
+          <button type="button" data-add-rich-block="quote">Quote</button>
+          <button type="button" data-add-rich-block="divider">Divider</button>
+          <button type="button" data-add-rich-block="code">Code</button>
+        </aside>
+        <div class="page-editor-canvas" data-page-editor-canvas></div>
+        <aside class="page-editor-preview" data-page-editor-preview-pane aria-label="Page preview"></aside>
+      </div>
+    </section>
+
+    <div class="editor-toast" data-editor-toast hidden role="status"></div>
+    <script id="portal-content-data" type="application/json" set:html={serializedPortalContent}></script>
+
     <script is:inline>
-      const tabs = Array.from(document.querySelectorAll("[data-page]"));
       const track = document.querySelector("[data-track]");
-      const panels = Array.from(document.querySelectorAll("[data-panel]"));
-      const pageCount = panels.length || 1;
       const basePath = new URL(document.baseURI).pathname;
-      const routeMap = new Map();
+      let tabs = [];
+      let panels = [];
+      let pageCount = 1;
+      let routeMap = new Map();
 
-      track.style.setProperty("--page-count", String(pageCount));
+      function refreshPortalRouting() {
+        tabs = Array.from(document.querySelectorAll("[data-page]"));
+        panels = Array.from(document.querySelectorAll("[data-panel]"));
+        pageCount = panels.length || 1;
+        routeMap = new Map();
+        track.style.setProperty("--page-count", String(pageCount));
+        panels.forEach((panel, index) => {
+          panel.dataset.panelIndex = String(index);
+          const route = panel.dataset.route;
+          if (route !== undefined) routeMap.set(route, panel.dataset.panel);
+        });
+        routeMap.set("/", "home");
+        routeMap.set("", "home");
+      }
 
-      panels.forEach((panel, index) => {
-        panel.dataset.panelIndex = String(index);
-        const route = panel.dataset.route;
-        if (route !== undefined) {
-          routeMap.set(route, panel.dataset.panel);
-        }
-      });
-
-      routeMap.set("/", "home");
-      routeMap.set("blog/archive/", "detail-archives");
+      refreshPortalRouting();
 
       function normalizeRoute(url) {
         const parsed = new URL(url, window.location.href);
@@ -617,12 +678,6 @@ const tabForGroup = (group: string) =>
         if (!panelName) return false;
         return openPanel(panelName, push ? cleanRoute : null);
       }
-
-      tabs.forEach((tab) => {
-        tab.addEventListener("click", () => {
-          setActivePage(tab.dataset.page, null);
-        });
-      });
 
       const labMenu = document.querySelector("[data-lab-menu]");
       const labMenuToggle = labMenu?.querySelector("[data-lab-menu-toggle]");
@@ -723,6 +778,12 @@ const tabForGroup = (group: string) =>
       document.addEventListener("click", (event) => {
         if (labMenu && !labMenu.contains(event.target)) {
           setLabMenuOpen(false);
+        }
+
+        const tab = event.target.closest("[data-page]");
+        if (tab) {
+          setActivePage(tab.dataset.page, null);
+          return;
         }
 
         const link = event.target.closest("a[href]");
@@ -839,6 +900,8 @@ const tabForGroup = (group: string) =>
       });
 
       setActivePage(0);
+      window.portalRouter = { refresh: refreshPortalRouting, openPanel, openRoute, setActivePage };
     </script>
+    <script type="module" src={editorScriptUrl}></script>
   </body>
 </html>

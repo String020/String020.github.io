@@ -1,0 +1,284 @@
+{
+  "schemaVersion": 1,
+  "publishedAt": "2026-07-17T00:00:00.000Z",
+  "navigation": [
+    {
+      "id": "string",
+      "kind": "home",
+      "title": "String",
+      "label": "STRING",
+      "slug": "",
+      "description": "Personal dashboard and portal home.",
+      "locked": true,
+      "blocks": []
+    },
+    {
+      "id": "blog",
+      "kind": "blog",
+      "title": "Blog",
+      "label": "BLOG",
+      "slug": "blog",
+      "description": "Published posts, notes, search, and writing tools.",
+      "locked": true,
+      "blocks": []
+    },
+    {
+      "id": "archives",
+      "kind": "managed",
+      "title": "Archives",
+      "label": "ARCHIVES",
+      "slug": "archives",
+      "description": "A chronological layer for posts, categories, tags, search, sitemap, and RSS.",
+      "locked": false,
+      "blocks": [
+        {
+          "id": "archives-timeline",
+          "type": "page",
+          "width": "half",
+          "badge": "TL",
+          "title": "Timeline",
+          "summary": "A chronological view for posts and later updates.",
+          "destination": { "kind": "url", "href": "blog/archive/" }
+        },
+        {
+          "id": "archives-categories",
+          "type": "page",
+          "width": "half",
+          "badge": "CA",
+          "title": "Categories",
+          "summary": "Broad groups for blog posts.",
+          "destination": { "kind": "url", "href": "blog/" }
+        },
+        {
+          "id": "archives-tags",
+          "type": "page",
+          "width": "half",
+          "badge": "TG",
+          "title": "Tags",
+          "summary": "Small topics that keep notes searchable.",
+          "destination": { "kind": "url", "href": "blog/" }
+        },
+        {
+          "id": "archives-rss",
+          "type": "page",
+          "width": "half",
+          "badge": "RS",
+          "title": "RSS",
+          "summary": "A lightweight RSS feed for published posts.",
+          "destination": { "kind": "url", "href": "rss.xml" }
+        }
+      ]
+    },
+    {
+      "id": "my",
+      "kind": "managed",
+      "title": "My",
+      "label": "MY",
+      "slug": "my",
+      "description": "Personal interests, collections, devices, and media notes.",
+      "locked": false,
+      "blocks": [
+        {
+          "id": "my-anime",
+          "type": "page",
+          "width": "half",
+          "badge": "AN",
+          "title": "Anime",
+          "summary": "Track watching progress, ratings, and small notes.",
+          "destination": { "kind": "page", "pageId": "page-anime" }
+        },
+        {
+          "id": "my-music",
+          "type": "page",
+          "width": "half",
+          "badge": "MU",
+          "title": "Music",
+          "summary": "Playlists, favorite tracks, and listening notes.",
+          "destination": { "kind": "page", "pageId": "page-music" }
+        },
+        {
+          "id": "my-devices",
+          "type": "page",
+          "width": "half",
+          "badge": "DV",
+          "title": "Devices",
+          "summary": "A small inventory of tools, devices, and setup notes.",
+          "destination": { "kind": "page", "pageId": "page-devices" }
+        },
+        {
+          "id": "my-collection",
+          "type": "page",
+          "width": "half",
+          "badge": "CL",
+          "title": "Collection",
+          "summary": "Saved links, screenshots, references, and things worth keeping.",
+          "destination": { "kind": "page", "pageId": "page-collection" }
+        }
+      ]
+    },
+    {
+      "id": "about",
+      "kind": "managed",
+      "title": "About",
+      "label": "ABOUT",
+      "slug": "about",
+      "description": "Profile, skills, projects, and contact information.",
+      "locked": false,
+      "blocks": [
+        {
+          "id": "about-profile",
+          "type": "page",
+          "width": "half",
+          "badge": "AB",
+          "title": "About me",
+          "summary": "A longer introduction page for background, interests, and goals.",
+          "destination": { "kind": "page", "pageId": "page-about" }
+        },
+        {
+          "id": "about-skills",
+          "type": "page",
+          "width": "half",
+          "badge": "SK",
+          "title": "Skills",
+          "summary": "A compact skill board for languages, tools, and learning status.",
+          "destination": { "kind": "page", "pageId": "page-skills" }
+        },
+        {
+          "id": "about-projects",
+          "type": "page",
+          "width": "half",
+          "badge": "PJ",
+          "title": "Projects",
+          "summary": "Selected work, experiments, and course-related builds.",
+          "destination": { "kind": "page", "pageId": "page-projects" }
+        },
+        {
+          "id": "about-contact",
+          "type": "page",
+          "width": "half",
+          "badge": "CT",
+          "title": "Contact",
+          "summary": "GitHub, links, and future contact methods.",
+          "destination": { "kind": "page", "pageId": "page-contact" }
+        }
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "id": "page-anime",
+      "parentNavigationId": "my",
+      "title": "Anime",
+      "slug": "anime",
+      "route": "anime",
+      "description": "A personal tracking page for anime progress, ratings, and comments.",
+      "badge": "AN",
+      "shareImage": null,
+      "content": [
+        { "id": "anime-intro", "type": "paragraph", "text": "Track what is currently playing, completed titles, ratings, and small viewing notes." },
+        { "id": "anime-heading", "type": "heading", "level": 2, "text": "Sections" },
+        { "id": "anime-list", "type": "list", "style": "unordered", "items": ["Watching", "Completed", "Ratings", "Notes"] }
+      ]
+    },
+    {
+      "id": "page-music",
+      "parentNavigationId": "my",
+      "title": "Music",
+      "slug": "music",
+      "route": "music",
+      "description": "A page for playlists, favorite tracks, albums, and listening notes.",
+      "badge": "MU",
+      "shareImage": null,
+      "content": [
+        { "id": "music-intro", "type": "paragraph", "text": "Keep playlists, favorite tracks, albums, and short listening notes in one place." },
+        { "id": "music-heading", "type": "heading", "level": 2, "text": "Listening library" },
+        { "id": "music-list", "type": "list", "style": "unordered", "items": ["Playlists", "Favorite tracks", "Albums", "Listening notes"] }
+      ]
+    },
+    {
+      "id": "page-devices",
+      "parentNavigationId": "my",
+      "title": "Devices",
+      "slug": "devices",
+      "route": "devices",
+      "description": "A small setup inventory for devices, tools, and workflow notes.",
+      "badge": "DV",
+      "shareImage": null,
+      "content": [
+        { "id": "devices-intro", "type": "paragraph", "text": "Document the devices, software, and small tools that make up the current setup." },
+        { "id": "devices-list", "type": "list", "style": "unordered", "items": ["Laptop", "Tools", "Desk setup", "Software"] }
+      ]
+    },
+    {
+      "id": "page-collection",
+      "parentNavigationId": "my",
+      "title": "Collection",
+      "slug": "collection",
+      "route": "collection",
+      "description": "Saved links, screenshots, references, and things worth keeping.",
+      "badge": "CL",
+      "shareImage": null,
+      "content": [
+        { "id": "collection-intro", "type": "paragraph", "text": "A quiet place for saved links, screenshots, references, and favorites." },
+        { "id": "collection-list", "type": "list", "style": "unordered", "items": ["Links", "Screenshots", "References", "Favorites"] }
+      ]
+    },
+    {
+      "id": "page-about",
+      "parentNavigationId": "about",
+      "title": "About me",
+      "slug": "about-me",
+      "route": "about/about-me",
+      "description": "A longer introduction page for background, interests, and goals.",
+      "badge": "AB",
+      "shareImage": null,
+      "content": [
+        { "id": "about-intro", "type": "paragraph", "text": "A personal introduction covering background, study direction, interests, and goals." },
+        { "id": "about-list", "type": "list", "style": "unordered", "items": ["Profile", "Study direction", "Interests", "Contact"] }
+      ]
+    },
+    {
+      "id": "page-skills",
+      "parentNavigationId": "about",
+      "title": "Skills",
+      "slug": "skills",
+      "route": "skills",
+      "description": "A compact skill board for languages, tools, and learning status.",
+      "badge": "SK",
+      "shareImage": null,
+      "content": [
+        { "id": "skills-intro", "type": "paragraph", "text": "Technical abilities and learning progress across programming, automation, interface work, and version control." },
+        { "id": "skills-list", "type": "list", "style": "unordered", "items": ["JavaScript", "Python", "Web UI", "Git"] }
+      ]
+    },
+    {
+      "id": "page-projects",
+      "parentNavigationId": "about",
+      "title": "Projects",
+      "slug": "projects",
+      "route": "projects",
+      "description": "Selected work, experiments, and course-related builds.",
+      "badge": "PJ",
+      "shareImage": null,
+      "content": [
+        { "id": "projects-intro", "type": "paragraph", "text": "Selected builds and experiments, from course planning to cloud demos." },
+        { "id": "projects-list", "type": "list", "style": "unordered", "items": ["Course Planner", "Algorithm Visual Notes", "Cloud Demo Lab"] }
+      ]
+    },
+    {
+      "id": "page-contact",
+      "parentNavigationId": "about",
+      "title": "Contact",
+      "slug": "contact",
+      "route": "contact",
+      "description": "Contact routes, profile links, and future message integrations.",
+      "badge": "CT",
+      "shareImage": null,
+      "content": [
+        { "id": "contact-intro", "type": "paragraph", "text": "Use the links below to find current public profiles and contact routes." },
+        { "id": "contact-github", "type": "link", "label": "GitHub", "href": "https://github.com/String020" }
+      ]
+    }
+  ],
+  "redirects": []
+}

@@ -5,3 +5,7 @@ dist
 .env.*
 !.env.example
 preview-server*.log
+
+# The administrator API is deployed from a private local/Google Cloud source tree.
+# Do not publish its server implementation in the public GitHub Pages repository.
+admin-api/

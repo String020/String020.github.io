@@ -1,0 +1,71 @@
+---
+import "../styles/global.css";
+
+const base = import.meta.env.BASE_URL;
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const apiBase = import.meta.env.PUBLIC_ADMIN_API_URL || "";
+const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="description" content="Private administration entry for the Str1ng personal portal." />
+    <title>Admin — Str1ng</title>
+  </head>
+  <body style={backgroundStyle}>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="soft-wash" aria-hidden="true"></div>
+    <main class="admin-login-shell panel" data-admin-login data-api={apiBase} data-home={withBase()}>
+      <a class="back-link" href={withBase()}>← Back to portal</a>
+      <div class="admin-login-mark" aria-hidden="true">S0</div>
+      <p>Private workspace</p>
+      <h1>Portal editor</h1>
+      <span>Sign in with the approved GitHub account to edit navigation, blocks, pages, drafts, and releases.</span>
+      <button class="admin-login-button" type="button" data-github-login>Continue with GitHub</button>
+      <button class="admin-login-button admin-login-button--local" type="button" data-local-login hidden>Open local editor</button>
+      <small data-admin-login-status>Only String020 is allowed to continue.</small>
+    </main>
+
+    <script is:inline>
+      const root = document.querySelector("[data-admin-login]");
+      const api = (root?.dataset.api || "").replace(/\/$/, "");
+      const home = root?.dataset.home || "/";
+      const status = root?.querySelector("[data-admin-login-status]");
+      const githubButton = root?.querySelector("[data-github-login]");
+      const localButton = root?.querySelector("[data-local-login]");
+      const local = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const token = hash.get("admin_token");
+
+      if (token) {
+        sessionStorage.setItem("portal-admin-token", token);
+        status.textContent = "Signed in. Opening the editor…";
+        window.location.replace(`${home}?edit=1`);
+      }
+
+      if (local) {
+        localButton.hidden = false;
+        localButton.addEventListener("click", () => {
+          sessionStorage.setItem("portal-local-admin", "true");
+          window.location.assign(`${home}?edit=1`);
+        });
+      }
+
+      if (!api) {
+        githubButton.disabled = true;
+        status.textContent = local
+          ? "Cloud sign-in is not configured in this local build."
+          : "The administrator service has not been configured yet.";
+      } else {
+        githubButton.addEventListener("click", () => {
+          const returnTo = `${window.location.origin}${window.location.pathname}`;
+          window.location.assign(`${api}/auth/github/start?return_to=${encodeURIComponent(returnTo)}`);
+        });
+      }
+    </script>
+  </body>
+</html>

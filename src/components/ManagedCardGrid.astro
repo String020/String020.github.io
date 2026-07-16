@@ -1,0 +1,65 @@
+---
+import type { CardBlock, ManagedPage } from "../lib/portal-content";
+
+type Props = {
+  blocks: CardBlock[];
+  pages: ManagedPage[];
+  base: string;
+  navigationId: string;
+};
+
+const { blocks, pages, base, navigationId } = Astro.props;
+const pageMap = new Map(pages.map((page) => [page.id, page]));
+const isExternal = (href: string) => /^(https?:|mailto:|#)/.test(href);
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const hrefFor = (block: CardBlock) => {
+  if (!block.destination) return null;
+  if (block.destination.kind === "url") {
+    return isExternal(block.destination.href) ? block.destination.href : withBase(block.destination.href);
+  }
+  const page = pageMap.get(block.destination.pageId);
+  return page ? withBase(`${page.route.replace(/^\/+|\/+$/g, "")}/`) : null;
+};
+---
+
+<div class="managed-card-grid" data-managed-card-grid data-navigation-id={navigationId}>
+  {
+    blocks.map((block) => {
+      const href = hrefFor(block);
+      const Tag = href ? "a" : "article";
+      return (
+        <Tag
+          class={`directory-card managed-card managed-card--${block.width}`}
+          href={href || undefined}
+          data-managed-card
+          data-card-id={block.id}
+          data-card-type={block.type}
+          data-card-width={block.width}
+        >
+          {block.image?.src && (
+            <figure class="managed-card-image">
+              <img src={isExternal(block.image.src) ? block.image.src : withBase(block.image.src)} alt={block.image.alt} loading="lazy" />
+              {block.image.caption && <figcaption>{block.image.caption}</figcaption>}
+            </figure>
+          )}
+          <span>{block.badge}</span>
+          <h3>{block.title}</h3>
+          <p>{block.summary}</p>
+          {block.actions?.length ? (
+            <div class="managed-card-actions">
+              {block.actions.map((action) => (
+                <a href={isExternal(action.href) ? action.href : withBase(action.href)}>{action.label}</a>
+              ))}
+            </div>
+          ) : null}
+          {href && <small class="managed-card-open">Open</small>}
+        </Tag>
+      );
+    })
+  }
+</div>
+
+<div class="managed-empty" data-managed-empty hidden={blocks.length > 0}>
+  <strong>Nothing here yet.</strong>
+  <span>Enter edit mode to add the first block.</span>
+</div>

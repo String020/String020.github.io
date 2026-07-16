@@ -1,38 +1,25 @@
 # Personal Site Maintenance
 
-## Change Website Text
+## Direct editor
 
-Edit this file:
+After the Google Cloud administrator service is configured, open `/admin/` and sign in with the GitHub account `String020`. The sliders icon then appears in the header and opens direct edit mode.
 
-```txt
-src/data/site.ts
-```
+Version 1 behavior:
 
-Most visible text lives there:
+- `STRING` is permanently protected.
+- `BLOG` and its Markdown articles are protected for now.
+- `ARCHIVES`, `MY`, `ABOUT`, and newly created navigation pages can be renamed, reordered, or permanently deleted.
+- A navigation page contains half-width or full-width information blocks and page blocks.
+- Page blocks can open a rich page with paragraphs, H2/H3 headings, images, lists, links, quotes, dividers, and code.
+- Deleting navigation shows affected blocks, pages, images, and URLs, then requires typing its name.
+- Changes save as a private draft. `Publish` creates a GitHub commit; the public site changes only after the Pages build succeeds.
+- `Releases` shows the latest 20 content commits. Restoring creates a new commit instead of rewriting history.
 
-- brand name and initials
-- profile name, summary, quick links
-- dashboard stats
-- top navigation labels
-- portal panels such as Blog, Archive, My, Network, Build, and System
-- generated feature pages such as `anime`, `diary`, `friends`, `projects`, and `skills`
-- project cards, skill cards, side widgets, and planned system functions
+Published editor content is stored in `src/data/portal-content.json`. Do not hand-edit that file while a cloud draft is open on another device.
 
-The visual style lives here:
+## Blog posts
 
-```txt
-src/styles/global.css
-```
-
-## Add A Blog Post
-
-Create a new Markdown file here:
-
-```txt
-src/content/blog/my-post-name.md
-```
-
-Use this format:
+Blog management remains file-based in version 1. Create a Markdown file under `src/content/blog/`:
 
 ```md
 ---
@@ -42,110 +29,40 @@ date: "2026-06-18"
 tags: ["study", "project"]
 category: "Study"
 pinned: false
+draft: false
 ---
 
-Write your post here.
+Write the post here.
 ```
 
-The file name becomes the URL:
+The file name becomes `/blog/<file-name>/`. Set `draft: true` to hide it.
 
-```txt
-/blog/my-post-name/
-```
+## Files that remain code-managed
 
-To hide a draft from the site:
+- `src/data/site.ts`: profile, dashboard, blog panel, search, and lab text.
+- `src/content/blog/`: Markdown blog articles.
+- `src/styles/global.css`: visual design and editor styling.
+- `public/assets/portal-editor.js`: direct editor behavior.
+- `admin-api/`: private cloud administrator service.
 
-```md
-draft: true
-```
+## Local development
 
-Optional fields inspired by Mizuki-style blog frontmatter:
-
-```md
-published: "2026-06-18" # alternative to date
-updated: "2026-06-19"
-image: "./cover.jpg"
-category: "Frontend"
-pinned: true
-comment: false
-lang: "en"
-```
-
-## Add Or Remove A Panel
-
-For small changes, edit `src/data/site.ts`.
-
-For a new top navigation page, edit both:
-
-```txt
-src/data/site.ts
-src/pages/index.astro
-```
-
-The slide interaction now counts pages automatically, so you do not need to edit CSS percentages.
-
-## Add Or Remove A Feature Page
-
-Generated feature pages live in:
-
-```txt
-src/data/site.ts
-```
-
-Edit the `featurePages` array. Each item becomes a route:
-
-```txt
-slug: "anime" -> /anime/
-slug: "friends" -> /friends/
-```
-
-The shared page template is:
-
-```txt
-src/pages/[section].astro
-```
-
-You usually do not need to edit it unless the page needs custom behavior.
-
-## Current Function Map
-
-The site is now organized like a lightweight personal blog portal:
-
-- `BLOG`: Markdown articles from `src/content/blog`.
-- `ARCHIVE`: post timeline, categories, tags, and RSS.
-- `MY`: anime, diary, albums, and devices pages.
-- `NETWORK`: about, friends, GitHub, email, and site links.
-- `BUILD`: projects, skills, and timeline pages.
-- `SYSTEM`: ready/planned features such as RSS, search, comments, music, and widgets.
-
-The RSS feed is generated at:
-
-```txt
-/rss.xml
-```
-
-## Local Commands
-
-```bash
+```powershell
 pnpm install
 pnpm dev
+```
+
+On localhost, `/admin/` offers `Open local editor`. Local drafts remain in that browser and cannot publish. This mode is only for interface development.
+
+Validate both applications:
+
+```powershell
 pnpm build
+pnpm --dir admin-api build
 ```
 
-## GitHub Pages
+## Publishing and cloud setup
 
-This project already includes:
+GitHub Pages deployment remains in `.github/workflows/deploy.yml`. The Google Cloud administrator API publishes only `src/data/portal-content.json` through a repository-scoped GitHub App.
 
-```txt
-.github/workflows/deploy.yml
-```
-
-After pushing to GitHub:
-
-1. Open the repository on GitHub.
-2. Go to Settings.
-3. Go to Pages.
-4. Set Source to GitHub Actions.
-5. Push to the `main` branch.
-
-The workflow handles normal project repositories and `<username>.github.io` repositories automatically.
+Follow `GOOGLE_CLOUD_SETUP.md` before enabling cloud sign-in. Never place GitHub App credentials, private keys, session secrets, or Google credentials in GitHub-tracked files.
