@@ -59,7 +59,11 @@ const hrefFor = (block: CardBlock) => {
   }
 </div>
 
-<div class="managed-empty" data-managed-empty hidden={blocks.length > 0}>
-  <strong>Nothing here yet.</strong>
-  <span>Enter edit mode to add the first block.</span>
-</div>
+{
+  blocks.length === 0 && (
+    <div class="managed-empty">
+      <strong>Nothing here yet.</strong>
+      <span>New content is on the way.</span>
+    </div>
+  )
+}

@@ -143,7 +143,7 @@ if (contentNode) {
           "data-navigation-tab": "",
           "data-navigation-id": navigation.id,
           "data-navigation-locked": navigation.locked,
-          "aria-selected": navigation.id === state.activeNavigationId,
+          "aria-current": navigation.id === state.activeNavigationId,
         },
       });
       const shell = element("span", {
@@ -319,7 +319,7 @@ if (contentNode) {
       if (!navigation.blocks.length && !state.isEditing) {
         panel.append(element("div", { className: "managed-empty" }, [
           element("strong", { text: "Nothing here yet." }),
-          element("span", { text: "The first block has not been published." }),
+          element("span", { text: "New content is on the way." }),
         ]));
       }
       fragment.append(panel);

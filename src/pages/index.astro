@@ -680,6 +680,36 @@ const topTags = Array.from(tagCounts.entries())
           });
       }
 
+      // The stage follows the current panel's height instead of stretching to the tallest panel.
+      let observedPanel = null;
+      const stageResizeObserver = new ResizeObserver(() => syncStageHeight());
+
+      function syncStageHeight() {
+        if (observedPanel) track.style.height = `${observedPanel.offsetHeight}px`;
+      }
+
+      function observeCurrentPanel(panel) {
+        if (panel !== observedPanel) {
+          if (observedPanel) stageResizeObserver.unobserve(observedPanel);
+          observedPanel = panel || null;
+          if (observedPanel) stageResizeObserver.observe(observedPanel);
+        }
+        syncStageHeight();
+      }
+
+      const stage = document.querySelector(".content-stage");
+      const portalHeader = document.querySelector(".portal-header");
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // After a visitor switches panels, bring the panel top into view when it sits off-screen,
+      // such as below the profile cards on phones or after scrolling down a long panel.
+      function revealStage() {
+        const offset = (portalHeader?.offsetHeight || 0) + 12;
+        const top = stage.getBoundingClientRect().top;
+        if (top >= offset && top <= window.innerHeight * 0.4) return;
+        window.scrollTo({ top: window.scrollY + top - offset, behavior: reduceMotion ? "auto" : "smooth" });
+      }
+
       function setActivePage(index, pushRoute = null) {
         const pageIndex = Number(index);
         track.style.transform = `translateX(calc(-${pageIndex} * 100% / ${pageCount}))`;
@@ -691,13 +721,17 @@ const topTags = Array.from(tagCounts.entries())
         tabs.forEach((tab, currentIndex) => {
           const isActive = currentIndex === activeTab;
           tab.classList.toggle("is-active", isActive);
-          tab.setAttribute("aria-selected", String(isActive));
+          tab.setAttribute("aria-current", String(isActive));
           if (isActive) revealTab(tab);
         });
 
         panels.forEach((panel, currentIndex) => {
-          panel.classList.toggle("is-current", currentIndex === pageIndex);
+          const isCurrent = currentIndex === pageIndex;
+          panel.classList.toggle("is-current", isCurrent);
+          // Off-screen panels stay out of the keyboard and screen reader order.
+          panel.inert = !isCurrent;
         });
+        observeCurrentPanel(activePanel);
 
         if (pushRoute !== null) {
           const routeUrl = new URL(pushRoute || ".", window.location.origin + basePath);
@@ -823,6 +857,7 @@ const topTags = Array.from(tagCounts.entries())
         const tab = event.target.closest("[data-page]");
         if (tab) {
           setActivePage(tab.dataset.page, null);
+          revealStage();
           return;
         }
 
@@ -834,6 +869,7 @@ const topTags = Array.from(tagCounts.entries())
         if (openRoute(route)) {
           event.preventDefault();
           setLabMenuOpen(false);
+          revealStage();
         }
       });
 
