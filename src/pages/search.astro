@@ -1,11 +1,11 @@
 ---
 import { site } from "../data/site";
+import { backgroundStyle } from "../lib/images";
 import "../styles/global.css";
 import "../styles/blog-features.css";
 
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
-const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
 ---
 
 <!doctype html>

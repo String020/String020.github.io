@@ -1,20 +1,17 @@
 ---
-import { getCollection, render } from "astro:content";
+import { Image } from "astro:assets";
+import { getCollection } from "astro:content";
+import profilePhoto from "../assets/profile-photo.jpg";
 import ManagedCardGrid from "../components/ManagedCardGrid.astro";
 import RichContent from "../components/RichContent.astro";
 import { site } from "../data/site";
 import { formatDate, getCategory, isPublished, slugifyTaxonomy, sortPosts } from "../lib/blog";
+import { backgroundStyle } from "../lib/images";
 import { managedNavigation, portalContent } from "../lib/portal-content";
 import "../styles/global.css";
 import "../styles/blog-features.css";
 
 const blogPosts = sortPosts((await getCollection("blog")).filter(isPublished));
-const renderedBlogPosts = await Promise.all(
-  blogPosts.map(async (post) => {
-    const { Content } = await render(post);
-    return { post, Content };
-  }),
-);
 
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
@@ -29,10 +26,9 @@ const tagHref = (tag: string) =>
     Projects: "projects/",
     Study: "blog/tag/notes/",
   })[tag] ?? `search/?q=${encodeURIComponent(tag)}`;
-const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
 const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site) : null;
 const navigation = portalContent.navigation;
-const pageCount = navigation.length + portalContent.pages.length + renderedBlogPosts.length + 1;
+const pageCount = navigation.length + portalContent.pages.length + blogPosts.length + 1;
 const tabIndexByNavigationId = new Map(navigation.map((item, index) => [item.id, index]));
 const editorScriptUrl = withBase("assets/portal-editor.js");
 const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL || "";
@@ -70,7 +66,7 @@ const topTags = Array.from(tagCounts.entries())
     {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
     <title>{site.title}</title>
   </head>
-  <body style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base}>
+  <body style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-editor-src={editorScriptUrl}>
     <div class="backdrop" aria-hidden="true"></div>
     <div class="soft-wash" aria-hidden="true"></div>
 
@@ -183,7 +179,14 @@ const topTags = Array.from(tagCounts.entries())
       <aside class="profile-column" aria-label="Profile panel">
         <section class="profile-card panel">
           <a class="avatar avatar-link" href={withBase("about/")} aria-label="Open about page">
-            <img src={withBase("assets/profile-photo.jpg")} alt="String profile photo" loading="eager" />
+            <Image
+              src={profilePhoto}
+              alt="String profile photo"
+              width={640}
+              widths={[320, 640]}
+              sizes="(max-width: 980px) 40vw, 240px"
+              loading="eager"
+            />
           </a>
           <h1>{site.profile.name}</h1>
           <p>{site.profile.summary}</p>
@@ -350,7 +353,7 @@ const topTags = Array.from(tagCounts.entries())
           }
 
           {
-            renderedBlogPosts.map(({ post, Content }) => (
+            blogPosts.map((post) => (
               <article
                 class="page detail-page article-panel"
                 data-panel={`post-${post.id}`}
@@ -372,8 +375,8 @@ const topTags = Array.from(tagCounts.entries())
                     ))}
                   </div>
                 </header>
-                <div class="article-body">
-                  <Content />
+                <div class="article-body" data-article-src={withBase(`blog/${post.id}/`)}>
+                  <p class="article-loading">Loading…</p>
                 </div>
               </article>
             ))
@@ -649,11 +652,40 @@ const topTags = Array.from(tagCounts.entries())
         else if (tabRect.right > barRect.right) bar.scrollLeft += tabRect.right - barRect.right + 12;
       }
 
+      // Article bodies are fetched from the standalone post page the first time a post panel opens.
+      function loadArticleBody(panel) {
+        const body = panel?.querySelector("[data-article-src]");
+        if (!body || body.dataset.state) return;
+        body.dataset.state = "loading";
+        fetch(body.dataset.articleSrc)
+          .then((response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.text();
+          })
+          .then((html) => {
+            const source = new DOMParser().parseFromString(html, "text/html").querySelector(".article-body");
+            if (!source) throw new Error("Article body not found");
+            body.replaceChildren(...source.childNodes);
+            body.dataset.state = "loaded";
+          })
+          .catch(() => {
+            const message = document.createElement("p");
+            message.className = "article-loading";
+            const retry = document.createElement("a");
+            retry.href = body.dataset.articleSrc;
+            retry.textContent = "Try again";
+            message.append("This post could not be loaded. ", retry);
+            body.replaceChildren(message);
+            delete body.dataset.state;
+          });
+      }
+
       function setActivePage(index, pushRoute = null) {
         const pageIndex = Number(index);
         track.style.transform = `translateX(calc(-${pageIndex} * 100% / ${pageCount}))`;
 
         const activePanel = panels[pageIndex];
+        loadArticleBody(activePanel);
         const activeTab = activePanel?.dataset.tab ? Number(activePanel.dataset.tab) : pageIndex;
 
         tabs.forEach((tab, currentIndex) => {
@@ -909,7 +941,20 @@ const topTags = Array.from(tagCounts.entries())
 
       setActivePage(0);
       window.portalRouter = { refresh: refreshPortalRouting, openPanel, openRoute, setActivePage };
+
+      // Only signed-in administrators need the editor, so visitors never download it.
+      let hasAdminSession = false;
+      try {
+        hasAdminSession = Boolean(
+          sessionStorage.getItem("portal-admin-token") || sessionStorage.getItem("portal-local-admin"),
+        );
+      } catch {}
+      if (hasAdminSession || /(^|[#&])admin_token=/.test(window.location.hash)) {
+        const editorScript = document.createElement("script");
+        editorScript.type = "module";
+        editorScript.src = document.body.dataset.editorSrc;
+        document.body.appendChild(editorScript);
+      }
     </script>
-    <script type="module" src={editorScriptUrl}></script>
   </body>
 </html>

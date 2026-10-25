@@ -1,10 +1,10 @@
 ---
+import { backgroundStyle } from "../lib/images";
 import "../styles/global.css";
 
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
 const apiBase = import.meta.env.PUBLIC_ADMIN_API_URL || "";
-const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
 ---
 
 <!doctype html>

@@ -2,6 +2,7 @@
 import { getCollection } from "astro:content";
 import { site } from "../../../data/site";
 import { formatDate, getAllCategories, getCategory, getReadingStats, isPublished, slugifyTaxonomy, sortPosts } from "../../../lib/blog";
+import { backgroundStyle } from "../../../lib/images";
 import "../../../styles/global.css";
 import "../../../styles/blog-features.css";
 
@@ -21,7 +22,6 @@ export async function getStaticPaths() {
 const { category, posts } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
-const backgroundStyle = `--background-image: url("${withBase("assets/handwriting-bg.jpg")}")`;
 ---
 
 <!doctype html>

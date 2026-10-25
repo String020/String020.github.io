@@ -39,7 +39,7 @@ pnpm preview
 - `public/assets/portal-editor.js`: direct-on-page editor.
 - The private `admin-api/` source tree (kept outside the public Git history): Google Cloud API for login, drafts, uploads, publishing, and releases.
 - `src/styles/global.css`: visual styling and responsive layout.
-- `public/assets/handwriting-bg.jpg`: background image served by Astro.
+- `src/assets/`: background and profile images, optimized to WebP at build time.
 - `.github/workflows/deploy.yml`: GitHub Pages deployment workflow.
 
 See `MAINTAIN.md` for content behavior and `GOOGLE_CLOUD_SETUP.md` for the private cloud administrator service.

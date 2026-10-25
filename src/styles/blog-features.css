@@ -178,6 +178,10 @@
   text-underline-offset: 3px;
 }
 
+.article-body .article-loading {
+  color: var(--muted);
+}
+
 .article-body img {
   border: 1px solid rgba(23, 23, 23, 0.1);
   border-radius: 14px;
