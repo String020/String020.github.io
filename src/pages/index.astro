@@ -3,19 +3,12 @@ import { getCollection, render } from "astro:content";
 import ManagedCardGrid from "../components/ManagedCardGrid.astro";
 import RichContent from "../components/RichContent.astro";
 import { site } from "../data/site";
+import { formatDate, getCategory, isPublished, slugifyTaxonomy, sortPosts } from "../lib/blog";
 import { managedNavigation, portalContent } from "../lib/portal-content";
 import "../styles/global.css";
 import "../styles/blog-features.css";
 
-const getPostDate = (post: { data: { published?: Date; date?: Date } }) =>
-  post.data.published ?? post.data.date ?? new Date(0);
-const blogPosts = (await getCollection("blog"))
-  .filter((post) => !post.data.draft)
-  .sort((a, b) => {
-    const pinnedDelta = Number(b.data.pinned) - Number(a.data.pinned);
-    if (pinnedDelta !== 0) return pinnedDelta;
-    return getPostDate(b).valueOf() - getPostDate(a).valueOf();
-  });
+const blogPosts = sortPosts((await getCollection("blog")).filter(isPublished));
 const renderedBlogPosts = await Promise.all(
   blogPosts.map(async (post) => {
     const { Content } = await render(post);
@@ -44,10 +37,14 @@ const tabIndexByNavigationId = new Map(navigation.map((item, index) => [item.id,
 const editorScriptUrl = withBase("assets/portal-editor.js");
 const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL || "";
 const serializedPortalContent = JSON.stringify(portalContent).replace(/</g, "\\u003c");
-const formatDate = (date: Date) =>
-  new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "2-digit" }).format(date);
+const statCounts: Record<string, number> = {
+  "Main sections": navigation.length,
+  "Blog posts": blogPosts.length,
+  "About routes": portalContent.pages.filter((page) => page.parentNavigationId === "about").length,
+  "Future lab": site.lab.items.length,
+};
 const dashboardStats = site.dashboard.stats.map((stat) =>
-  stat.label === "Blog posts" ? { ...stat, value: String(blogPosts.length).padStart(2, "0") } : stat,
+  stat.label in statCounts ? { ...stat, value: String(statCounts[stat.label]).padStart(2, "0") } : stat,
 );
 const categories = Array.from(new Set(blogPosts.map((post) => post.data.category).filter(Boolean)));
 const tagCounts = blogPosts.reduce((counts, post) => {
@@ -60,10 +57,11 @@ const topTags = Array.from(tagCounts.entries())
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={withBase("favicon.svg")} />
     <meta name="description" content={site.description} />
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
     <meta property="og:type" content="website" />
@@ -254,9 +252,8 @@ const topTags = Array.from(tagCounts.entries())
                   frameborder="0"
                   width="330"
                   height="86"
-                  src="https://music.163.com/outchain/player?type=2&id=1909742217&auto=1&height=66"
+                  src="https://music.163.com/outchain/player?type=2&id=1909742217&auto=0&height=66"
                   loading="lazy"
-                  allow="autoplay"
                 ></iframe>
               </section>
             </div>
@@ -274,7 +271,7 @@ const topTags = Array.from(tagCounts.entries())
                   {
                     blogPosts.slice(0, 4).map((post) => (
                       <a class="blog-preview-link" href={withBase(`blog/${post.id}/`)}>
-                        <span>{formatDate(getPostDate(post))}{post.data.pinned ? " / Pinned" : ""}</span>
+                        <span>{formatDate(post.data.date)}{post.data.pinned ? " / Pinned" : ""}</span>
                         <strong>{post.data.title}</strong>
                         <small>{post.data.description}</small>
                       </a>
@@ -362,16 +359,16 @@ const topTags = Array.from(tagCounts.entries())
               >
                 <a class="panel-back" href={withBase("blog/")} data-portal-route="blog/">Back to blog panel</a>
                 <header class="article-header">
-                  <time datetime={getPostDate(post).toISOString()}>{formatDate(getPostDate(post))}</time>
+                  <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
                   <h1>{post.data.title}</h1>
                   <p>{post.data.description}</p>
                   <div class="article-meta">
-                    {post.data.category && <a class="meta-pill" href={withBase("blog/")}>{post.data.category}</a>}
+                    <a class="meta-pill" href={withBase(`blog/category/${slugifyTaxonomy(getCategory(post))}/`)}>{getCategory(post)}</a>
                     {post.data.pinned && <span class="meta-pill">Pinned</span>}
                   </div>
                   <div class="article-tags">
                     {post.data.tags.map((tag) => (
-                      <a href={withBase(`blog/tag/${tag.toLowerCase().replace(/\s+/g, "-")}/`)}>#{tag}</a>
+                      <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
                     ))}
                   </div>
                 </header>
@@ -642,6 +639,16 @@ const topTags = Array.from(tagCounts.entries())
         return pathname ? `${pathname.replace(/\/?$/, "/")}${parsed.search}` : "";
       }
 
+      // Keep the active tab visible when the tab bar scrolls horizontally on narrow screens.
+      function revealTab(tab) {
+        const bar = tab.parentElement;
+        if (!bar || bar.scrollWidth <= bar.clientWidth) return;
+        const barRect = bar.getBoundingClientRect();
+        const tabRect = tab.getBoundingClientRect();
+        if (tabRect.left < barRect.left) bar.scrollLeft -= barRect.left - tabRect.left + 12;
+        else if (tabRect.right > barRect.right) bar.scrollLeft += tabRect.right - barRect.right + 12;
+      }
+
       function setActivePage(index, pushRoute = null) {
         const pageIndex = Number(index);
         track.style.transform = `translateX(calc(-${pageIndex} * 100% / ${pageCount}))`;
@@ -653,6 +660,7 @@ const topTags = Array.from(tagCounts.entries())
           const isActive = currentIndex === activeTab;
           tab.classList.toggle("is-active", isActive);
           tab.setAttribute("aria-selected", String(isActive));
+          if (isActive) revealTab(tab);
         });
 
         panels.forEach((panel, currentIndex) => {

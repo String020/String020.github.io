@@ -20,6 +20,7 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={withBase("favicon.svg")} />
     <meta name="description" content="Blog archive for the personal portal." />
     <title>Blog | {site.brand.name}</title>
   </head>
@@ -32,7 +33,7 @@ const backgroundStyle = `--background-image: url("${withBase("assets/handwriting
       <header class="blog-header">
         <p>BLOG</p>
         <h1>All posts</h1>
-        <span>Markdown files from <code>src/content/blog</code>.</span>
+        <span>Notes, write-ups, and study logs.</span>
         <nav class="blog-tools" aria-label="Blog tools">
           <a class="tool-link" href={withBase("search/")}>Search</a>
           <a class="tool-link" href={withBase("blog/archive/")}>Archive</a>

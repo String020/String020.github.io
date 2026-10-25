@@ -14,7 +14,7 @@ export const site = {
       { label: "Blog", href: "blog/" },
       { label: "Contact", href: "contact/" },
     ],
-    notice: "This portal is organized around String, Blog, Archives, My, About, Search, and Lab.",
+    notice: "欢迎来访！网站仍在持续建设中，新文章和页面会陆续更新。",
     tags: ["Blog", "Archives", "My", "About"],
   },
   dashboard: {
@@ -36,7 +36,7 @@ export const site = {
   blog: {
     eyebrow: "Blog",
     title: "Blog center for posts and notes.",
-    intro: "Write posts in src/content/blog. Frontmatter supports category, tags, series, cover image, pinned, updated, comment, and lang fields.",
+    intro: "Browse every post, search by keyword, explore the archive, or follow along with RSS.",
     actions: [
       { label: "All posts", href: "blog/" },
       { label: "Search", href: "search/" },
