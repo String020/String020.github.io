@@ -41,6 +41,10 @@ if (contentNode) {
     activePageId: null,
     activePostId: null,
     publishedPostSlugs: new Set(),
+    // When the API stores posts separately, saves carry only the posts that changed.
+    splitPostStorage: false,
+    dirtyPostIds: new Set(),
+    deletedPostIds: new Set(),
     pendingDelete: null,
     draggedNavigationId: null,
     draggedCard: null,
@@ -457,11 +461,41 @@ if (contentNode) {
     state.saveTimer = window.setTimeout(() => saveDraft(), 700);
   }
 
+  function markPostChanged(postId) {
+    state.dirtyPostIds.add(postId);
+    state.deletedPostIds.delete(postId);
+  }
+
+  function markPostDeleted(postId) {
+    state.dirtyPostIds.delete(postId);
+    state.deletedPostIds.add(postId);
+  }
+
+  // Builds the save request: with separate post storage only changed posts are sent, otherwise everything.
+  function draftPayload(upsertIds, deletes) {
+    if (!state.splitPostStorage) return { revision: state.revision, content: state.content };
+    const { posts = [], ...content } = state.content;
+    return {
+      revision: state.revision,
+      content,
+      postChanges: { upserts: posts.filter((post) => upsertIds.includes(post.id)), deletes },
+    };
+  }
+
   async function saveDraft(force = false) {
     const serialized = JSON.stringify(state.content);
     if (!force && (serialized === state.lastSaved || state.isSaving)) return;
     state.isSaving = true;
     setStatus("Saving draft…");
+    const upsertIds = [...state.dirtyPostIds];
+    const deletes = [...state.deletedPostIds];
+    state.dirtyPostIds.clear();
+    state.deletedPostIds.clear();
+    // Changes that did not reach the server are sent again with the next save.
+    const requeuePostChanges = () => {
+      upsertIds.forEach((id) => { if (!state.deletedPostIds.has(id)) state.dirtyPostIds.add(id); });
+      deletes.forEach((id) => { if (!state.dirtyPostIds.has(id)) state.deletedPostIds.add(id); });
+    };
     try {
       if (localAdmin) {
         state.revision += 1;
@@ -470,7 +504,7 @@ if (contentNode) {
         const response = await apiFetch("/v1/draft", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ revision: state.revision, content: state.content }),
+          body: JSON.stringify(draftPayload(upsertIds, deletes)),
         });
         if (response.status === 409) {
           const conflict = await response.json();
@@ -480,21 +514,25 @@ if (contentNode) {
             state.revision = Number(conflict.revision || 0);
             state.assetPreviews = new Map(Object.entries(conflict.assetPreviews || {}));
             state.lastSaved = JSON.stringify(state.content);
+            state.dirtyPostIds.clear();
+            state.deletedPostIds.clear();
             renderPortal();
             setStatus("Newer cloud draft loaded");
             return;
           }
+          requeuePostChanges();
           state.revision = Number(conflict.revision || state.revision);
           state.isSaving = false;
           return saveDraft(true);
         }
-        if (!response.ok) throw new Error("Draft save failed.");
+        if (!response.ok) throw new Error((await response.json().catch(() => ({}))).message || "Draft save failed.");
         const data = await response.json();
         state.revision = Number(data.revision || state.revision + 1);
       }
       state.lastSaved = serialized;
       setStatus("Draft saved");
     } catch (error) {
+      requeuePostChanges();
       console.error(error);
       setStatus("Draft save failed");
       showToast(error.message || "Draft save failed.", 4000);
@@ -892,6 +930,7 @@ if (contentNode) {
       assets: {},
     };
     ensurePosts().push(post);
+    markPostChanged(post.id);
     scheduleSave();
     openPostEditor(post.id, { isNew: true });
   }
@@ -930,7 +969,10 @@ if (contentNode) {
 
   function closePostEditor() {
     const post = findPost(state.activePostId);
-    if (post) post.slug = uniquePostSlug(post.slug, post.id);
+    if (post) {
+      post.slug = uniquePostSlug(post.slug, post.id);
+      markPostChanged(post.id);
+    }
     postEditor.hidden = true;
     postEditor.classList.remove("is-previewing");
     body.style.removeProperty("overflow");
@@ -1014,6 +1056,7 @@ if (contentNode) {
       const uploaded = await uploadImage(file);
       post.image = uploaded.src;
       postForm.elements.image.value = uploaded.src;
+      markPostChanged(post.id);
       scheduleSave();
       renderPostPreview();
     } catch (error) {
@@ -1275,6 +1318,7 @@ if (contentNode) {
     if (!pending) return;
     if (pending.kind === "post") {
       state.content.posts = ensurePosts().filter((post) => post.id !== pending.postId);
+      markPostDeleted(pending.postId);
       state.pendingDelete = null;
       deleteDialog.close();
       scheduleSave();
@@ -1503,6 +1547,7 @@ if (contentNode) {
     const post = findPost(state.activePostId);
     if (!post || !event.target.name || event.target.type === "file") return;
     updatePostField(post, event.target);
+    markPostChanged(post.id);
     postEditorTitle.textContent = post.title || "Untitled post";
     scheduleSave();
     schedulePostPreview();
@@ -1513,6 +1558,7 @@ if (contentNode) {
     if (event.target.name === "slug") {
       post.slug = uniquePostSlug(post.slug, post.id);
       event.target.value = post.slug;
+      markPostChanged(post.id);
       scheduleSave();
     }
     const file = event.target.files?.[0];
@@ -1539,7 +1585,9 @@ if (contentNode) {
     else if (apiBase && state.token) {
       try {
         const response = await apiFetch("/v1/session");
-        state.isAdmin = response.ok && (await response.json()).login?.toLowerCase() === "string020";
+        const session = response.ok ? await response.json() : {};
+        state.isAdmin = session.login?.toLowerCase() === "string020";
+        state.splitPostStorage = Array.isArray(session.features) && session.features.includes("split-post-storage");
       } catch {
         state.isAdmin = false;
       }

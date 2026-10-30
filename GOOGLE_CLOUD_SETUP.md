@@ -58,11 +58,21 @@ Use at least 32 random bytes for `session-secret`. Do not paste any of these val
 
 ## Build and deploy
 
-From `admin-api/`:
+Production runs as the second-generation Cloud Function `string-portal-function`. To update its code, run from `admin-api/`:
+
+```powershell
+gcloud functions deploy string-portal-function --gen2 --region=asia-southeast1 --runtime=nodejs22 --entry-point=portalAdminApi --trigger-http --source=.
+```
+
+This replaces only the code; the function keeps its environment variables, Secret Manager references, and service account. `.gcloudignore` keeps `node_modules/` and local `.env` files out of the upload.
+
+To run the same source in Cloud Run instead:
 
 ```powershell
 gcloud builds submit --config cloudbuild.yaml .
 ```
+
+Draft blog posts are stored as one Firestore document each under `portal/draft/posts`, and published posts as one file each under `src/data/posts/`, so the number of posts is not limited by a single document's size.
 
 After Google Cloud returns the public function URL:
 
