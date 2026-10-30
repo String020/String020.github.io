@@ -1306,6 +1306,67 @@ a {
   }
 }
 
+/* Reading aids */
+.reading-progress {
+  height: 3px;
+  inset: 0 0 auto;
+  pointer-events: none;
+  position: fixed;
+  z-index: 11;
+}
+
+.reading-progress span {
+  background: rgba(var(--ink-rgb), 0.55);
+  display: block;
+  height: 100%;
+  transform: scaleX(var(--reading-progress, 0));
+  transform-origin: left;
+}
+
+.reading-progress[hidden],
+.back-to-top[hidden] {
+  display: none;
+}
+
+.back-to-top {
+  align-items: center;
+  backdrop-filter: blur(14px) saturate(0.98);
+  background: var(--panel-strong);
+  border: 1px solid var(--panel-line);
+  border-radius: 999px;
+  bottom: 24px;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  cursor: pointer;
+  display: inline-flex;
+  height: 42px;
+  justify-content: center;
+  position: fixed;
+  right: 24px;
+  width: 42px;
+  z-index: 9;
+}
+
+.back-to-top:hover,
+.back-to-top:focus-visible {
+  background: rgba(var(--paper-rgb), 0.82);
+}
+
+.back-to-top svg {
+  fill: none;
+  height: 20px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 20px;
+}
+
+/* Keep clear of the editor toolbar along the bottom edge. */
+body.is-editing .back-to-top {
+  bottom: 96px;
+}
+
 /* Managed portal content */
 .managed-card-grid {
   display: grid;
