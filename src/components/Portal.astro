@@ -798,7 +798,8 @@ const topTags = Array.from(tagCounts.entries())
 
     <script is:inline>
       const track = document.querySelector("[data-track]");
-      const basePath = new URL(document.baseURI).pathname;
+      // The portal is served at many routes now, so the site base comes from the build, not the URL.
+      const basePath = document.body.dataset.portalBase || "/";
       let tabs = [];
       let panels = [];
       let pageCount = 1;
