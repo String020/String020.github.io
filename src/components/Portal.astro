@@ -522,16 +522,24 @@ const topTags = Array.from(tagCounts.entries())
                 >
                   <a class="panel-back" href={withBase("blog/")} data-portal-route="blog/">Back to blog</a>
                   <div class="article-layout">
-                    <div class="article-card">
+                    <div class="article-card" data-pagefind-body={isServerRendered ? "" : undefined}>
                       <header class="article-header">
                         {cover && <img class="article-cover" src={cover} alt="" />}
                         <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
                         <h1>{post.data.title}</h1>
                         <p>{post.data.description}</p>
                         <div class="article-meta">
-                          <a class="meta-pill" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+                          <a
+                            class="meta-pill"
+                            href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}
+                            data-pagefind-meta={isServerRendered ? "category" : undefined}
+                          >
+                            {category}
+                          </a>
                           {series && <a class="meta-pill" href={withBase(`blog/series/${slugifyTaxonomy(series)}/`)}>{series}</a>}
-                          <span class="meta-pill">{getReadingStats(post).label}</span>
+                          <span class="meta-pill" data-pagefind-meta={isServerRendered ? "reading" : undefined}>
+                            {getReadingStats(post).label}
+                          </span>
                           {post.data.updated && <span class="meta-pill">Updated {formatDate(post.data.updated)}</span>}
                           {post.data.pinned && <span class="meta-pill">Pinned</span>}
                         </div>
@@ -548,7 +556,7 @@ const topTags = Array.from(tagCounts.entries())
                           <p class="article-loading">Loading…</p>
                         </div>
                       )}
-                      <nav class="post-nav" aria-label="Post navigation">
+                      <nav class="post-nav" aria-label="Post navigation" data-pagefind-ignore>
                         {previous ? (
                           <a href={withBase(`blog/${previous.id}/`)} data-portal-direction="back">
                             <span>Previous</span>
@@ -1036,6 +1044,7 @@ const topTags = Array.from(tagCounts.entries())
         }
         loadArticleBody(activePanel);
         window.portalComments?.mount(activePanel?.querySelector("[data-comments]"));
+        if (activePanel?.dataset.panel === "search") loadSearchEngine();
         const activeTab = activePanel?.dataset.tab ? Number(activePanel.dataset.tab) : pageIndex;
 
         tabs.forEach((tab, currentIndex) => {
@@ -1262,89 +1271,117 @@ const topTags = Array.from(tagCounts.entries())
       const searchInput = document.getElementById("portal-search-box");
       const searchResults = document.getElementById("portal-search-results");
       const searchUrl = searchRoot?.dataset.searchUrl || `${basePath}search-data.json`;
-      let portalPosts = [];
 
       const withPortalBase = (path) => `${basePath}${String(path).replace(/^\/+/, "")}`;
       const normalizeText = (value) => String(value || "").toLowerCase();
 
-      function findPortalMatches(query) {
-        const terms = normalizeText(query).trim().split(/\s+/).filter(Boolean);
-        if (terms.length === 0) return [];
-
-        return portalPosts.filter((post) => {
-          const haystack = normalizeText([
-            post.title,
-            post.description,
-            post.category,
-            ...(post.tags || []),
-            post.excerpt,
-          ].join(" "));
-          return terms.every((term) => haystack.includes(term));
-        });
+      // Fallback for `astro dev`, where the Pagefind index has not been built: match the post list.
+      function findBasicMatches(posts, query) {
+        const terms = normalizeText(query).split(/\s+/).filter(Boolean);
+        return posts
+          .filter((post) => {
+            const haystack = normalizeText([post.title, post.description, post.category, ...(post.tags || []), post.excerpt].join(" "));
+            return terms.every((term) => haystack.includes(term));
+          })
+          .map((post) => ({
+            url: withPortalBase(post.url),
+            title: post.title,
+            meta: `${post.category} / ${post.reading}`,
+            excerptText: post.description || post.excerpt || "",
+          }));
       }
 
-      function renderPortalSearch(items, query) {
-        searchResults?.replaceChildren();
+      let searchEngine = null;
+
+      // The full-text index loads only once a visitor opens search, not on every page view.
+      function loadSearchEngine() {
+        searchEngine ??= import(`${basePath}pagefind/pagefind.js`)
+          .then(async (pagefind) => {
+            await pagefind.options({ excerptLength: 26 });
+            return {
+              async search(query) {
+                const response = await pagefind.search(query);
+                const results = await Promise.all(response.results.slice(0, 20).map((result) => result.data()));
+                return results.map((result) => ({
+                  url: result.url,
+                  title: result.meta.title,
+                  meta: [result.meta.category, result.meta.reading].filter(Boolean).join(" / "),
+                  excerptHtml: result.excerpt,
+                }));
+              },
+            };
+          })
+          .catch(() =>
+            fetch(searchUrl)
+              .then((response) => response.json())
+              .then((posts) => ({ search: async (query) => findBasicMatches(Array.isArray(posts) ? posts : [], query) })),
+          );
+        return searchEngine;
+      }
+
+      function renderSearchMessage(text) {
+        const message = document.createElement("p");
+        message.className = "search-empty";
+        message.textContent = text;
+        searchResults?.replaceChildren(message);
+      }
+
+      function renderPortalSearch(items) {
         if (!searchResults) return;
-
-        if (!query) {
-          const empty = document.createElement("p");
-          empty.className = "search-empty";
-          empty.textContent = "Type keywords to search matching posts.";
-          searchResults.appendChild(empty);
-          return;
-        }
-
         if (items.length === 0) {
-          const empty = document.createElement("p");
-          empty.className = "search-empty";
-          empty.textContent = "No matching posts found yet.";
-          searchResults.appendChild(empty);
+          renderSearchMessage("No matching posts found yet.");
           return;
         }
+        searchResults.replaceChildren(
+          ...items.map((item) => {
+            const card = document.createElement("article");
+            card.className = "search-result-card";
 
-        items.forEach((post) => {
-          const card = document.createElement("article");
-          card.className = "search-result-card";
+            const title = document.createElement("a");
+            title.className = "post-title-link";
+            title.href = item.url;
+            title.textContent = item.title;
 
-          const title = document.createElement("a");
-          title.className = "post-title-link";
-          title.href = withPortalBase(post.url);
-          title.textContent = post.title;
+            const meta = document.createElement("small");
+            meta.textContent = item.meta;
 
-          const meta = document.createElement("small");
-          meta.textContent = `${post.category} / ${post.reading}`;
+            const excerpt = document.createElement("p");
+            // Pagefind excerpts are escaped page text with <mark> around the matched words.
+            if (item.excerptHtml) excerpt.innerHTML = item.excerptHtml;
+            else excerpt.textContent = item.excerptText;
 
-          const desc = document.createElement("p");
-          desc.textContent = post.description || post.excerpt || "";
-
-          card.append(title, meta, desc);
-          searchResults.appendChild(card);
-        });
+            card.append(title, meta, excerpt);
+            return card;
+          }),
+        );
       }
 
-      function runPortalSearch(query) {
-        renderPortalSearch(findPortalMatches(query), query.trim());
-      }
+      let searchRun = 0;
 
-      let searchIndexLoaded = false;
+      async function runPortalSearch(query) {
+        const run = ++searchRun;
+        const trimmed = query.trim();
+        if (!trimmed) {
+          renderSearchMessage("Type keywords to search posts.");
+          return;
+        }
+        try {
+          const engine = await loadSearchEngine();
+          const items = await engine.search(trimmed);
+          if (run === searchRun) renderPortalSearch(items);
+        } catch {
+          if (run === searchRun) renderSearchMessage("Search index failed to load.");
+        }
+      }
 
       function setSearchQuery(query) {
         if (!searchInput) return;
         searchInput.value = query;
-        if (searchIndexLoaded) runPortalSearch(query);
+        runPortalSearch(query);
       }
 
-      fetch(searchUrl)
-        .then((response) => response.json())
-        .then((data) => {
-          portalPosts = Array.isArray(data) ? data : [];
-          searchIndexLoaded = true;
-          runPortalSearch(searchInput?.value || "");
-        })
-        .catch(() => {
-          if (searchResults) searchResults.textContent = "Search index failed to load.";
-        });
+      renderSearchMessage("Type keywords to search posts.");
+      searchInput?.addEventListener("focus", loadSearchEngine, { once: true });
 
       searchInput?.addEventListener("input", () => {
         runPortalSearch(searchInput.value);

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "astro dev",
     "check": "astro check",
-    "build": "astro build",
+    "build": "astro build && pagefind --site dist --force-language zh-cn",
     "preview": "astro preview"
   },
   "dependencies": {
@@ -16,6 +16,7 @@
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.12",
+    "pagefind": "^1.5.2",
     "typescript": "^6.0.3"
   }
 }
