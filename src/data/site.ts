@@ -38,7 +38,7 @@ export const site = {
     title: "Blog center for posts and notes.",
     intro: "Browse every post, search by keyword, explore the archive, or follow along with RSS.",
     actions: [
-      { label: "All posts", href: "blog/" },
+      { label: "Timeline", href: "blog/archive/" },
       { label: "Search", href: "search/" },
       { label: "Archives", href: "archives/" },
       { label: "Writing guide", href: "blog/writing-guide/" },

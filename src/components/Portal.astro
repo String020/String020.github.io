@@ -1,0 +1,1314 @@
+---
+import { Image } from "astro:assets";
+import { getCollection } from "astro:content";
+import profilePhoto from "../assets/profile-photo.jpg";
+import ManagedCardGrid from "./ManagedCardGrid.astro";
+import Comments from "./Comments.astro";
+import CommentsScript from "./CommentsScript.astro";
+import RichContent from "./RichContent.astro";
+import ThemeInit from "./ThemeInit.astro";
+import { site } from "../data/site";
+import {
+  formatDate,
+  getAdjacentPosts,
+  getAllCategories,
+  getAllSeries,
+  getAllTags,
+  getCategory,
+  getImageUrl,
+  getReadingStats,
+  getSeries,
+  isPublished,
+  slugifyTaxonomy,
+  sortPosts,
+  sortPostsByDateOnly,
+} from "../lib/blog";
+import { backgroundStyle } from "../lib/images";
+import { managedNavigation, portalContent } from "../lib/portal-content";
+import "../styles/global.css";
+import "../styles/blog-features.css";
+
+type Props = {
+  /** Portal route to open on load, e.g. "", "blog/", "skills/" or "blog/first-post/". */
+  route?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  ogType?: "website" | "article";
+  publishedTime?: Date;
+  lang?: string;
+  /** Post whose body is passed in the "article" slot and rendered on the server. */
+  articleId?: string;
+};
+
+const {
+  route = "",
+  title,
+  description = site.description,
+  image,
+  ogType = "website",
+  publishedTime,
+  lang = "zh-CN",
+  articleId,
+} = Astro.props;
+const articleHtml = articleId && Astro.slots.has("article") ? await Astro.slots.render("article") : "";
+
+const blogPosts = sortPosts((await getCollection("blog")).filter(isPublished));
+const postsByDate = sortPostsByDateOnly(blogPosts);
+const blogCategories = getAllCategories(blogPosts);
+const blogSeries = getAllSeries(blogPosts);
+const blogTags = getAllTags(blogPosts);
+
+const base = import.meta.env.BASE_URL;
+const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
+const isExternal = (href: string) => /^(https?:|mailto:|#)/.test(href);
+const linkHref = (href: string) => (isExternal(href) ? href : withBase(href));
+const tagHref = (tag: string) =>
+  ({
+    Blog: "blog/",
+    Archives: "archives/",
+    My: "my/",
+    About: "about/",
+    Projects: "projects/",
+    Study: "blog/tag/notes/",
+  })[tag] ?? `search/?q=${encodeURIComponent(tag)}`;
+const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site) : null;
+const pageTitle = title ? `${title} | ${site.brand.name}` : site.title;
+const shareImage = image ? new URL(image, Astro.site ?? Astro.url) : null;
+const navigation = portalContent.navigation;
+const tabIndexByNavigationId = new Map(navigation.map((item, index) => [item.id, index]));
+const blogTabIndex = tabIndexByNavigationId.get("blog");
+
+// Panels in DOM order, so the requested route can be opened in the server-rendered HTML.
+const panelOrder = [
+  { route: "", tab: 0 },
+  { route: "blog/", tab: blogTabIndex },
+  ...managedNavigation.map((item) => ({ route: `${item.slug}/`, tab: tabIndexByNavigationId.get(item.id) })),
+  ...portalContent.pages.map((page) => ({
+    route: `${page.route}/`,
+    tab: tabIndexByNavigationId.get(page.parentNavigationId),
+  })),
+  ...blogPosts.map((post) => ({ route: `blog/${post.id}/`, tab: blogTabIndex })),
+  { route: "search/", tab: undefined },
+];
+const pageCount = panelOrder.length;
+const initialIndex = Math.max(0, panelOrder.findIndex((panel) => panel.route === route));
+const initialTab = panelOrder[initialIndex].tab;
+const panelState = (panelRoute: string) => {
+  const isCurrent = panelOrder[initialIndex].route === panelRoute;
+  return { class: isCurrent ? "is-current" : "", inert: !isCurrent };
+};
+const editorScriptUrl = withBase("assets/portal-editor.js");
+const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL || "";
+const serializedPortalContent = JSON.stringify(portalContent).replace(/</g, "\\u003c");
+const statCounts: Record<string, number> = {
+  "Main sections": navigation.length,
+  "Blog posts": blogPosts.length,
+  "About routes": portalContent.pages.filter((page) => page.parentNavigationId === "about").length,
+  "Future lab": site.lab.items.length,
+};
+const dashboardStats = site.dashboard.stats.map((stat) =>
+  stat.label in statCounts ? { ...stat, value: String(statCounts[stat.label]).padStart(2, "0") } : stat,
+);
+const categories = Array.from(new Set(blogPosts.map((post) => post.data.category).filter(Boolean)));
+const tagCounts = blogPosts.reduce((counts, post) => {
+  post.data.tags.forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1));
+  return counts;
+}, new Map<string, number>());
+const topTags = Array.from(tagCounts.entries())
+  .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+  .slice(0, 8);
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/svg+xml" href={withBase("favicon.svg")} />
+    <ThemeInit />
+    <meta name="description" content={description} />
+    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+    <meta property="og:type" content={ogType} />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
+    {shareImage && <meta property="og:image" content={shareImage} />}
+    {publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
+    <title>{pageTitle}</title>
+  </head>
+  <body style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-editor-src={editorScriptUrl}>
+    <div class="backdrop" aria-hidden="true"></div>
+    <div class="soft-wash" aria-hidden="true"></div>
+
+    <header class="portal-header">
+      <a class="portal-brand" href={withBase()} aria-label="Portal home">
+        <span class="brand-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M12 2.8 20 6.2v5.9c0 4.8-3.4 7.8-8 9.1-4.6-1.3-8-4.3-8-9.1V6.2l8-3.4Z"></path>
+            <path d="M8.4 10.4 12 7.8l3.6 2.6-1.4 4.2H9.8l-1.4-4.2Z"></path>
+          </svg>
+        </span>
+        <span>{site.brand.name}</span>
+      </a>
+
+      <nav class="tabs" aria-label="Portal pages">
+        {
+          navigation.map((item, index) => (
+            <button
+              class={`tab ${index === initialTab ? "is-active" : ""}`}
+              type="button"
+              data-page={index}
+              data-navigation-tab
+              data-navigation-id={item.id}
+              data-navigation-locked={String(item.locked)}
+            >
+              {item.label}
+            </button>
+          ))
+        }
+        <button class="tool-button compact editor-entry" type="button" aria-label="Enter edit mode" data-editor-toggle hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h9"></path>
+            <path d="M17 7h3"></path>
+            <path d="M15 5v4"></path>
+            <path d="M4 17h3"></path>
+            <path d="M11 17h9"></path>
+            <path d="M9 15v4"></path>
+          </svg>
+        </button>
+      </nav>
+
+      <div class="header-actions" aria-label="Header actions">
+        <a class="search-pill" href={withBase("search/")} aria-label="Search blog">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="m20 20-4.3-4.3"></path>
+            <circle cx="10.8" cy="10.8" r="6.2"></circle>
+          </svg>
+          <span>Search blog</span>
+        </a>
+        <div class="lab-menu" data-lab-menu>
+          <button
+            class="tool-button dot-grid"
+            type="button"
+            aria-label="Open lab menu"
+            aria-expanded="false"
+            aria-controls="lab-menu-panel"
+            data-lab-menu-toggle
+          >
+            <span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+            <span></span><span></span><span></span>
+          </button>
+          <div class="lab-menu-panel" id="lab-menu-panel" aria-label="Lab menu" data-lab-menu-panel hidden>
+            <div class="lab-menu-heading">
+              <strong>{site.lab.eyebrow}</strong>
+              <small>功能菜单</small>
+            </div>
+            <ul class="lab-menu-tree" aria-label="Lab features">
+              {
+                site.lab.items.map((item, index) => (
+                  <li class="lab-tree-item" data-lab-tree-item>
+                    <button
+                      class="lab-tree-trigger"
+                      type="button"
+                      aria-expanded="false"
+                      aria-controls={`lab-tree-branch-${index}`}
+                      data-lab-tree-trigger
+                    >
+                      <span class="lab-tree-marker" aria-hidden="true"></span>
+                      <span>{item}</span>
+                      <span class="lab-tree-chevron" aria-hidden="true">›</span>
+                    </button>
+                    <div class="lab-tree-branch" id={`lab-tree-branch-${index}`} data-lab-tree-branch hidden>
+                      <button class="lab-branch-back" type="button" data-lab-branch-back>
+                        <span aria-hidden="true">‹</span>
+                        <strong>{item}</strong>
+                      </button>
+                      <p>等待开发</p>
+                    </div>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+        </div>
+        <a class="tool-button" href={withBase("contact/")} aria-label="Open contact links">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5.4 6.2h13.2a2 2 0 0 1 2 2v6.5a2 2 0 0 1-2 2h-6.1l-4.1 3v-3h-3a2 2 0 0 1-2-2V8.2a2 2 0 0 1 2-2Z"></path>
+            <path d="M8 10.3h8"></path>
+            <path d="M8 13.2h5.6"></path>
+          </svg>
+        </a>
+        <a class="tool-button" href={withBase("about/")} aria-label="Open profile">
+          <span>{site.brand.initials}</span>
+        </a>
+        <button class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" data-theme-toggle>
+          <span class="theme-toggle-knob" aria-hidden="true">
+            <svg class="theme-toggle-sun" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path>
+            </svg>
+            <svg class="theme-toggle-moon" viewBox="0 0 24 24">
+              <path d="M19.5 14.6A7.8 7.8 0 0 1 9.4 4.5a7.8 7.8 0 1 0 10.1 10.1Z"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-shell">
+      <aside class="profile-column" aria-label="Profile panel">
+        <section class="profile-card panel">
+          <a class="avatar avatar-link" href={withBase("about/")} aria-label="Open about page">
+            <Image
+              src={profilePhoto}
+              alt="String profile photo"
+              width={640}
+              widths={[320, 640]}
+              sizes="(max-width: 980px) 40vw, 240px"
+              loading="eager"
+            />
+          </a>
+          <h1>{site.profile.name}</h1>
+          <p>{site.profile.summary}</p>
+          <div class="quick-links" aria-label="Quick links">
+            {site.profile.links.map((link) => <a href={linkHref(link.href)}>{link.label}</a>)}
+          </div>
+        </section>
+
+        <section class="mini-card panel">
+          <div class="mini-title">
+            <span></span>
+            Notice
+          </div>
+          <p>{site.profile.notice}</p>
+        </section>
+
+        <section class="mini-card panel">
+          <div class="mini-title">
+            <span></span>
+            Tags
+          </div>
+          <div class="tag-cloud">
+            {site.profile.tags.map((tag) => <a href={linkHref(tagHref(tag))}>{tag}</a>)}
+          </div>
+        </section>
+      </aside>
+
+      <section class="content-stage panel" aria-live="polite">
+        <div
+          class="slide-track"
+          data-track
+          style={`--page-count: ${pageCount}; transform: translateX(calc(-${initialIndex} * 100% / ${pageCount}))`}
+        >
+          <article class={`page ${panelState("").class}`} inert={panelState("").inert} data-panel="home" data-route="">
+            <div class="page-heading">
+              <p>{site.dashboard.eyebrow}</p>
+              <h2>{site.dashboard.title}</h2>
+            </div>
+            <div class="summary-row">
+              {
+                dashboardStats.map((stat, index) => (
+                  <div class={`stat tone-${["a", "b", "c", "d"][index % 4]}`}>
+                    <strong>{stat.value}</strong>
+                    <span>{stat.label}</span>
+                  </div>
+                ))
+              }
+            </div>
+            <div class="home-grid">
+              <section class="focus-panel">
+                <h3>{site.dashboard.focus.title}</h3>
+                <p>{site.dashboard.focus.text}</p>
+                <div class="progress-line">
+                  <span style={`width: ${site.dashboard.focus.progress}%`}></span>
+                </div>
+              </section>
+              <section class="todo-panel">
+                <h3>Next edits</h3>
+                <ul>
+                  {site.dashboard.today.map((item) => <li>{item}</li>)}
+                </ul>
+              </section>
+              <section class="music-panel" aria-label="Now playing">
+                <div>
+                  <span>Music</span>
+                  <h3>Now playing</h3>
+                </div>
+                <iframe
+                  title="NetEase Cloud Music player"
+                  width="330"
+                  height="86"
+                  src="https://music.163.com/outchain/player?type=2&id=1909742217&auto=0&height=66"
+                  loading="lazy"
+                ></iframe>
+              </section>
+            </div>
+          </article>
+
+          <article
+            class={`page blog-panel ${panelState("blog/").class}`}
+            inert={panelState("blog/").inert}
+            data-panel="blog"
+            data-route="blog/"
+            data-tab={blogTabIndex}
+          >
+            <div class="page-heading">
+              <p>{site.blog.eyebrow}</p>
+              <h2>{site.blog.title}</h2>
+            </div>
+            <p class="page-intro">{site.blog.intro}</p>
+            <nav class="blog-tools" aria-label="Blog tools">
+              {site.blog.actions.map((action) => <a class="tool-link" href={linkHref(action.href)}>{action.label}</a>)}
+            </nav>
+
+            {blogCategories.length > 0 && (
+              <section class="taxonomy-block" aria-label="Categories">
+                <h2>Categories</h2>
+                <div class="taxonomy-cloud">
+                  {blogCategories.map((category) => (
+                    <a class="taxonomy-link" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {blogSeries.length > 0 && (
+              <section class="taxonomy-block" aria-label="Series">
+                <h2>Series</h2>
+                <div class="taxonomy-cloud">
+                  {blogSeries.map((series) => (
+                    <a class="taxonomy-link" href={withBase(`blog/series/${slugifyTaxonomy(series)}/`)}>{series}</a>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {blogTags.length > 0 && (
+              <section class="taxonomy-block" aria-label="Tags">
+                <h2>Tags</h2>
+                <div class="taxonomy-cloud">
+                  {blogTags.map((tag) => (
+                    <a class="taxonomy-link" href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            <section class="blog-list" aria-label="Blog posts">
+              {
+                blogPosts.map((post) => {
+                  const category = getCategory(post);
+                  const series = getSeries(post);
+                  const cover = getImageUrl(post, withBase);
+                  return (
+                    <article class={`blog-row ${cover ? "has-cover" : ""}`}>
+                      {cover && (
+                        <a class="post-cover" href={withBase(`blog/${post.id}/`)} aria-label={post.data.title}>
+                          <img src={cover} alt="" loading="lazy" />
+                        </a>
+                      )}
+                      <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+                      <div>
+                        <div class="post-meta-line">
+                          {post.data.pinned && <span class="pinned-badge">Pinned</span>}
+                          <a class="post-category" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+                          {series && <a class="meta-pill" href={withBase(`blog/series/${slugifyTaxonomy(series)}/`)}>{series}</a>}
+                          <span class="meta-pill">{getReadingStats(post).label}</span>
+                        </div>
+                        <a class="post-title-link" href={withBase(`blog/${post.id}/`)}>
+                          <h2>{post.data.title}</h2>
+                        </a>
+                        <p>{post.data.description}</p>
+                        <div class="post-tags">
+                          {post.data.tags.map((tag) => (
+                            <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
+                          ))}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })
+              }
+            </section>
+          </article>
+
+          {
+            managedNavigation.map((navigationItem) => (
+              <article
+                class={`page managed-navigation-page ${panelState(`${navigationItem.slug}/`).class}`}
+                inert={panelState(`${navigationItem.slug}/`).inert}
+                data-panel={navigationItem.id}
+                data-route={`${navigationItem.slug}/`}
+                data-tab={tabIndexByNavigationId.get(navigationItem.id)}
+                data-navigation-panel
+                data-navigation-id={navigationItem.id}
+              >
+                <div class="page-heading">
+                  <p>Navigation</p>
+                  <h2 data-navigation-title>{navigationItem.title}</h2>
+                </div>
+                <p class="page-intro" data-navigation-description>{navigationItem.description}</p>
+                <ManagedCardGrid
+                  blocks={navigationItem.blocks}
+                  pages={portalContent.pages}
+                  base={base}
+                  navigationId={navigationItem.id}
+                />
+                {navigationItem.id === "archives" && (
+                  <div class="metadata-row">
+                    <a href={withBase("blog/")}>{categories.length || 0} categories</a>
+                    <a href={withBase("blog/")}>{topTags.length || 0} active tags</a>
+                    <a href={withBase("blog/archive/")}>{blogPosts.length} published posts</a>
+                  </div>
+                )}
+              </article>
+            ))
+          }
+
+          {
+            portalContent.pages.map((managedPage) => (
+              <article
+                class={`page detail-page managed-detail-page ${panelState(`${managedPage.route}/`).class}`}
+                inert={panelState(`${managedPage.route}/`).inert}
+                data-panel={`managed-${managedPage.id}`}
+                data-route={`${managedPage.route}/`}
+                data-tab={tabIndexByNavigationId.get(managedPage.parentNavigationId)}
+                data-managed-page
+                data-page-id={managedPage.id}
+              >
+                <a
+                  class="panel-back"
+                  href={withBase(`${portalContent.navigation.find((item) => item.id === managedPage.parentNavigationId)?.slug || ""}/`)}
+                  data-portal-route={`${portalContent.navigation.find((item) => item.id === managedPage.parentNavigationId)?.slug || ""}/`}
+                >
+                  Back to {portalContent.navigation.find((item) => item.id === managedPage.parentNavigationId)?.title || "dashboard"}
+                </a>
+                <header class="section-header">
+                  <p>{portalContent.navigation.find((item) => item.id === managedPage.parentNavigationId)?.title || "Page"}</p>
+                  <div><span class="section-badge" data-managed-page-badge>{managedPage.badge}</span></div>
+                  <h1 data-managed-page-title>{managedPage.title}</h1>
+                  <span data-managed-page-description>{managedPage.description}</span>
+                </header>
+                <RichContent blocks={managedPage.content} base={base} />
+              </article>
+            ))
+          }
+
+          {
+            blogPosts.map((post) => {
+              const postRoute = `blog/${post.id}/`;
+              const category = getCategory(post);
+              const series = getSeries(post);
+              const cover = getImageUrl(post, withBase);
+              const { previous, next } = getAdjacentPosts(postsByDate, post);
+              const isServerRendered = post.id === articleId && articleHtml;
+              return (
+                <article
+                  class={`page detail-page article-panel ${panelState(postRoute).class}`}
+                  inert={panelState(postRoute).inert}
+                  data-panel={`post-${post.id}`}
+                  data-route={postRoute}
+                  data-tab={blogTabIndex}
+                >
+                  <a class="panel-back" href={withBase("blog/")} data-portal-route="blog/">Back to blog</a>
+                  <div class="article-layout">
+                    <div class="article-card">
+                      <header class="article-header">
+                        {cover && <img class="article-cover" src={cover} alt="" />}
+                        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
+                        <h1>{post.data.title}</h1>
+                        <p>{post.data.description}</p>
+                        <div class="article-meta">
+                          <a class="meta-pill" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
+                          {series && <a class="meta-pill" href={withBase(`blog/series/${slugifyTaxonomy(series)}/`)}>{series}</a>}
+                          <span class="meta-pill">{getReadingStats(post).label}</span>
+                          {post.data.updated && <span class="meta-pill">Updated {formatDate(post.data.updated)}</span>}
+                          {post.data.pinned && <span class="meta-pill">Pinned</span>}
+                        </div>
+                        <div class="article-tags">
+                          {post.data.tags.map((tag) => (
+                            <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
+                          ))}
+                        </div>
+                      </header>
+                      {isServerRendered ? (
+                        <div class="article-body" data-article-src={withBase(postRoute)} data-state="loaded" set:html={articleHtml} />
+                      ) : (
+                        <div class="article-body" data-article-src={withBase(postRoute)}>
+                          <p class="article-loading">Loading…</p>
+                        </div>
+                      )}
+                      <nav class="post-nav" aria-label="Post navigation">
+                        {previous ? (
+                          <a href={withBase(`blog/${previous.id}/`)}>
+                            <span>Previous</span>
+                            <strong>{previous.data.title}</strong>
+                          </a>
+                        ) : <span></span>}
+                        {next ? (
+                          <a href={withBase(`blog/${next.id}/`)}>
+                            <span>Next</span>
+                            <strong>{next.data.title}</strong>
+                          </a>
+                        ) : <span></span>}
+                      </nav>
+                      {post.data.comment && <Comments term={`blog/${post.id}`} />}
+                    </div>
+                    <aside class="toc-panel" aria-label="Table of contents" data-article-toc hidden></aside>
+                  </div>
+                </article>
+              );
+            })
+          }
+
+          <article
+            class={`page detail-page ${panelState("search/").class}`}
+            inert={panelState("search/").inert}
+            data-panel="search"
+            data-route="search/"
+            data-search-root
+            data-search-url={withBase("search-data.json")}
+            data-base={base}
+          >
+            <a class="panel-back" href={withBase()} data-portal-route="">Back to dashboard</a>
+            <div class="page-heading">
+              <p>Search</p>
+              <h2>Search blog inside the portal.</h2>
+            </div>
+            <input class="search-box portal-search-box" id="portal-search-box" type="search" placeholder="Type keywords..." autocomplete="off" />
+            <section class="search-results" id="portal-search-results" aria-live="polite"></section>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <aside class="editor-toolbar" data-editor-toolbar hidden aria-label="Edit controls">
+      <div class="editor-toolbar-state">
+        <span class="editor-live-dot" aria-hidden="true"></span>
+        <strong>Edit mode</strong>
+        <small data-editor-status>Draft loaded</small>
+      </div>
+      <div class="editor-toolbar-actions">
+        <button type="button" class="editor-button" data-add-navigation>Add navigation</button>
+        <button type="button" class="editor-button" data-add-card>Add block</button>
+        <button type="button" class="editor-button" data-preview-draft>Preview</button>
+        <button type="button" class="editor-button" data-release-history>Releases</button>
+        <button type="button" class="editor-button editor-button--primary" data-publish-draft>Publish</button>
+        <button type="button" class="editor-icon-button" data-exit-editor aria-label="Exit edit mode">×</button>
+      </div>
+    </aside>
+
+    <dialog class="editor-dialog" data-navigation-dialog>
+      <form class="editor-form" data-navigation-form>
+        <header>
+          <div>
+            <small>Navigation</small>
+            <h2 data-navigation-dialog-title>Add navigation</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <input type="hidden" name="navigationId" />
+        <label>
+          Page title
+          <input name="title" maxlength="60" required placeholder="Article" />
+        </label>
+        <label>
+          Navigation label
+          <input name="label" maxlength="18" required placeholder="ARTICLE" />
+        </label>
+        <label>
+          Page address
+          <span class="editor-input-prefix">/ <input name="slug" maxlength="64" required placeholder="article" /> /</span>
+        </label>
+        <label>
+          Description
+          <textarea name="description" maxlength="240" rows="3" required placeholder="What this section contains."></textarea>
+        </label>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Cancel</button>
+          <button type="submit" class="editor-button editor-button--primary">Save navigation</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="editor-dialog" data-card-dialog>
+      <form class="editor-form" data-card-form>
+        <header>
+          <div>
+            <small>Block</small>
+            <h2 data-card-dialog-title>Add block</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <input type="hidden" name="navigationId" />
+        <input type="hidden" name="cardId" />
+        <div class="editor-field-row">
+          <label>
+            Block type
+            <select name="type">
+              <option value="text">Information block</option>
+              <option value="page">Page block</option>
+            </select>
+          </label>
+          <label>
+            Width
+            <select name="width">
+              <option value="half">Half width</option>
+              <option value="full">Full row</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          Badge
+          <input name="badge" maxlength="4" required placeholder="AR" />
+        </label>
+        <label>
+          Title
+          <input name="title" maxlength="80" required placeholder="Article" />
+        </label>
+        <label>
+          Summary
+          <textarea name="summary" maxlength="320" rows="3" required placeholder="A short description shown on the block."></textarea>
+        </label>
+        <div class="editor-field-row">
+          <label>
+            Image URL <small>(optional)</small>
+            <input name="imageSrc" type="url" placeholder="https://…" />
+          </label>
+          <label>
+            Upload image <small>(JPG, PNG, WebP · 10 MB)</small>
+            <input name="imageFile" type="file" accept="image/jpeg,image/png,image/webp" />
+          </label>
+        </div>
+        <div class="editor-field-row">
+          <label>
+            Image alt text
+            <input name="imageAlt" maxlength="160" placeholder="Describe the image" />
+          </label>
+          <label>
+            Image caption
+            <input name="imageCaption" maxlength="180" placeholder="Optional caption" />
+          </label>
+        </div>
+        <div data-page-card-fields hidden>
+          <label>
+            Destination
+            <select name="destinationKind">
+              <option value="new-page">Create a new page</option>
+              <option value="url">Open an existing URL</option>
+            </select>
+          </label>
+          <label data-card-url-field hidden>
+            URL
+            <input name="destinationUrl" placeholder="https://… or /path/" />
+          </label>
+        </div>
+        <div class="editor-field-row" data-text-card-fields>
+          <label>
+            Link button label <small>(optional)</small>
+            <input name="actionLabel" maxlength="40" placeholder="Open resource" />
+          </label>
+          <label>
+            Link button URL
+            <input name="actionHref" placeholder="https://… or /path/" />
+          </label>
+        </div>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Cancel</button>
+          <button type="submit" class="editor-button editor-button--primary">Save block</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="editor-dialog editor-dialog--danger" data-delete-dialog>
+      <form class="editor-form" data-delete-form>
+        <header>
+          <div>
+            <small>Permanent deletion</small>
+            <h2 data-delete-title>Delete item</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <p data-delete-summary></p>
+        <dl class="editor-impact-list" data-delete-impact></dl>
+        <label data-delete-confirm-field hidden>
+          Type <strong data-delete-confirm-name></strong> to confirm
+          <input name="confirmation" autocomplete="off" />
+        </label>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Cancel</button>
+          <button type="submit" class="editor-button editor-button--danger" data-confirm-delete>Delete permanently</button>
+        </footer>
+      </form>
+    </dialog>
+
+    <dialog class="editor-dialog" data-releases-dialog>
+      <section class="editor-form">
+        <header>
+          <div>
+            <small>Published versions</small>
+            <h2>Release history</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <p>Up to 20 content releases are shown. Restoring creates a new commit and keeps the existing history.</p>
+        <div class="editor-release-list" data-release-list aria-live="polite">
+          <p>Loading releases...</p>
+        </div>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Close</button>
+        </footer>
+      </section>
+    </dialog>
+
+    <section class="page-editor" data-page-editor hidden aria-label="Page content editor">
+      <header class="page-editor-header">
+        <button type="button" class="editor-button" data-close-page-editor>← Back</button>
+        <div>
+          <small>Page editor</small>
+          <strong data-page-editor-title>Untitled page</strong>
+        </div>
+        <div class="page-editor-header-actions">
+          <button type="button" class="editor-button" data-page-editor-preview>Preview</button>
+          <button type="button" class="editor-button editor-button--primary" data-close-page-editor>Save draft</button>
+        </div>
+      </header>
+      <div class="page-editor-layout">
+        <aside class="page-editor-palette" aria-label="Content blocks">
+          <strong>Add content</strong>
+          <button type="button" data-add-rich-block="paragraph">Paragraph</button>
+          <button type="button" data-add-rich-block="heading">Heading</button>
+          <button type="button" data-add-rich-block="image">Image</button>
+          <button type="button" data-add-rich-block="list">List</button>
+          <button type="button" data-add-rich-block="link">Link button</button>
+          <button type="button" data-add-rich-block="quote">Quote</button>
+          <button type="button" data-add-rich-block="divider">Divider</button>
+          <button type="button" data-add-rich-block="code">Code</button>
+        </aside>
+        <div class="page-editor-canvas" data-page-editor-canvas></div>
+        <aside class="page-editor-preview" data-page-editor-preview-pane aria-label="Page preview"></aside>
+      </div>
+    </section>
+
+    <div class="editor-toast" data-editor-toast hidden role="status"></div>
+    <script id="portal-content-data" type="application/json" set:html={serializedPortalContent}></script>
+    <CommentsScript />
+
+    <script is:inline>
+      const track = document.querySelector("[data-track]");
+      const basePath = new URL(document.baseURI).pathname;
+      let tabs = [];
+      let panels = [];
+      let pageCount = 1;
+      let routeMap = new Map();
+
+      function refreshPortalRouting() {
+        tabs = Array.from(document.querySelectorAll("[data-page]"));
+        panels = Array.from(document.querySelectorAll("[data-panel]"));
+        pageCount = panels.length || 1;
+        routeMap = new Map();
+        track.style.setProperty("--page-count", String(pageCount));
+        panels.forEach((panel, index) => {
+          panel.dataset.panelIndex = String(index);
+          const route = panel.dataset.route;
+          if (route !== undefined) routeMap.set(route, panel.dataset.panel);
+        });
+        routeMap.set("/", "home");
+        routeMap.set("", "home");
+      }
+
+      refreshPortalRouting();
+
+      function normalizeRoute(url) {
+        const parsed = new URL(url, window.location.href);
+        if (parsed.origin !== window.location.origin) return null;
+        let pathname = parsed.pathname;
+        if (basePath !== "/" && pathname.startsWith(basePath)) {
+          pathname = pathname.slice(basePath.length);
+        }
+        pathname = pathname.replace(/^\/+/, "");
+        return pathname ? `${pathname.replace(/\/?$/, "/")}${parsed.search}` : "";
+      }
+
+      // Keep the active tab visible when the tab bar scrolls horizontally on narrow screens.
+      function revealTab(tab) {
+        const bar = tab.parentElement;
+        if (!bar || bar.scrollWidth <= bar.clientWidth) return;
+        const barRect = bar.getBoundingClientRect();
+        const tabRect = tab.getBoundingClientRect();
+        if (tabRect.left < barRect.left) bar.scrollLeft -= barRect.left - tabRect.left + 12;
+        else if (tabRect.right > barRect.right) bar.scrollLeft += tabRect.right - barRect.right + 12;
+      }
+
+      const calloutPattern = /^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i;
+
+      // Adds copy buttons, GitHub-style callouts and the table of contents to a loaded article body.
+      function enhanceArticle(panel) {
+        const body = panel?.querySelector('.article-body[data-state="loaded"]');
+        if (!body || body.dataset.enhanced) return;
+        body.dataset.enhanced = "true";
+
+        body.querySelectorAll("pre").forEach((pre) => {
+          const code = pre.querySelector("code");
+          if (!code || pre.querySelector(".copy-code-button")) return;
+          const button = document.createElement("button");
+          button.className = "copy-code-button";
+          button.type = "button";
+          button.textContent = "Copy";
+          button.addEventListener("click", async () => {
+            try {
+              await navigator.clipboard.writeText(code.textContent || "");
+              button.textContent = "Copied";
+              window.setTimeout(() => {
+                button.textContent = "Copy";
+              }, 1200);
+            } catch {
+              button.textContent = "Failed";
+            }
+          });
+          pre.appendChild(button);
+        });
+
+        body.querySelectorAll("blockquote").forEach((quote) => {
+          const firstParagraph = quote.querySelector("p");
+          const match = firstParagraph?.textContent?.match(calloutPattern);
+          if (!match) return;
+          const type = match[1].toLowerCase();
+          quote.classList.add("callout", `callout-${type}`);
+          const label = document.createElement("strong");
+          label.className = "callout-label";
+          label.textContent = type.toUpperCase();
+          firstParagraph.textContent = firstParagraph.textContent.replace(calloutPattern, "");
+          quote.prepend(label);
+          if (!firstParagraph.textContent.trim()) firstParagraph.remove();
+        });
+
+        const toc = panel.querySelector("[data-article-toc]");
+        const headings = Array.from(body.querySelectorAll("h2[id], h3[id]"));
+        if (!toc || headings.length === 0) return;
+        const heading = document.createElement("strong");
+        heading.textContent = "Contents";
+        toc.replaceChildren(heading);
+        headings.forEach((item) => {
+          const link = document.createElement("a");
+          link.className = `depth-${item.tagName.slice(1)}`;
+          link.href = `#${item.id}`;
+          link.textContent = item.textContent;
+          toc.appendChild(link);
+        });
+        toc.hidden = false;
+        toc.closest(".article-layout")?.classList.add("has-toc");
+      }
+
+      // Bodies of other posts are fetched from that post's own page the first time its panel opens.
+      function loadArticleBody(panel) {
+        const body = panel?.querySelector("[data-article-src]");
+        if (!body || body.dataset.state) return;
+        body.dataset.state = "loading";
+        fetch(body.dataset.articleSrc)
+          .then((response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.text();
+          })
+          .then((html) => {
+            const source = new DOMParser()
+              .parseFromString(html, "text/html")
+              .querySelector('.article-body[data-state="loaded"]');
+            if (!source) throw new Error("Article body not found");
+            body.replaceChildren(...source.childNodes);
+            body.dataset.state = "loaded";
+            enhanceArticle(panel);
+          })
+          .catch(() => {
+            const message = document.createElement("p");
+            message.className = "article-loading";
+            const retry = document.createElement("a");
+            retry.href = body.dataset.articleSrc;
+            retry.textContent = "Try again";
+            message.append("This post could not be loaded. ", retry);
+            body.replaceChildren(message);
+            delete body.dataset.state;
+          });
+      }
+
+      // The stage follows the current panel's height instead of stretching to the tallest panel.
+      let observedPanel = null;
+      const stageResizeObserver = new ResizeObserver(() => syncStageHeight());
+
+      function syncStageHeight() {
+        if (observedPanel) track.style.height = `${observedPanel.offsetHeight}px`;
+      }
+
+      function observeCurrentPanel(panel) {
+        if (panel !== observedPanel) {
+          if (observedPanel) stageResizeObserver.unobserve(observedPanel);
+          observedPanel = panel || null;
+          if (observedPanel) stageResizeObserver.observe(observedPanel);
+        }
+        syncStageHeight();
+      }
+
+      const stage = document.querySelector(".content-stage");
+      const portalHeader = document.querySelector(".portal-header");
+      const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      // After a visitor switches panels, bring the panel top into view when it sits off-screen,
+      // such as below the profile cards on phones or after scrolling down a long panel.
+      function revealStage() {
+        const offset = (portalHeader?.offsetHeight || 0) + 12;
+        const top = stage.getBoundingClientRect().top;
+        if (top >= offset && top <= window.innerHeight * 0.4) return;
+        window.scrollTo({ top: window.scrollY + top - offset, behavior: reduceMotion ? "auto" : "smooth" });
+      }
+
+      function setActivePage(index, pushRoute = null) {
+        const pageIndex = Number(index);
+        track.style.transform = `translateX(calc(-${pageIndex} * 100% / ${pageCount}))`;
+
+        const activePanel = panels[pageIndex];
+        loadArticleBody(activePanel);
+        window.portalComments?.mount(activePanel?.querySelector("[data-comments]"));
+        const activeTab = activePanel?.dataset.tab ? Number(activePanel.dataset.tab) : pageIndex;
+
+        tabs.forEach((tab, currentIndex) => {
+          const isActive = currentIndex === activeTab;
+          tab.classList.toggle("is-active", isActive);
+          tab.setAttribute("aria-current", String(isActive));
+          if (isActive) revealTab(tab);
+        });
+
+        panels.forEach((panel, currentIndex) => {
+          const isCurrent = currentIndex === pageIndex;
+          panel.classList.toggle("is-current", isCurrent);
+          // Off-screen panels stay out of the keyboard and screen reader order.
+          panel.inert = !isCurrent;
+        });
+        observeCurrentPanel(activePanel);
+
+        if (pushRoute !== null) {
+          const routeUrl = new URL(pushRoute || ".", window.location.origin + basePath);
+          window.history.pushState({ panel: activePanel?.dataset.panel }, "", routeUrl);
+        }
+      }
+
+      function openPanel(panelName, pushRoute = null) {
+        const panel = panels.find((item) => item.dataset.panel === panelName);
+        if (!panel) return false;
+        setActivePage(Number(panel.dataset.panelIndex), pushRoute);
+        return true;
+      }
+
+      function openRoute(route, push = true) {
+        const [cleanRoute, query = ""] = route.split("?");
+        const panelName = routeMap.get(cleanRoute);
+        if (!panelName) return false;
+        const isSearch = panelName === "search";
+        openPanel(panelName, push ? (isSearch ? route : cleanRoute) : null);
+        if (isSearch) setSearchQuery(new URLSearchParams(query).get("q") || "");
+        return true;
+      }
+
+      // Scrolls to an element inside the current panel, clearing the fixed header.
+      function scrollToTarget(target, behavior = "auto") {
+        const offset = (portalHeader?.offsetHeight || 0) + 16;
+        window.scrollTo({ top: window.scrollY + target.getBoundingClientRect().top - offset, behavior });
+      }
+
+      function findInCurrentPanel(hash) {
+        const id = decodeURIComponent(hash.replace(/^#/, ""));
+        const panel = panels.find((item) => item.classList.contains("is-current"));
+        return id && panel ? panel.querySelector(`[id="${CSS.escape(id)}"]`) : null;
+      }
+
+      const labMenu = document.querySelector("[data-lab-menu]");
+      const labMenuToggle = labMenu?.querySelector("[data-lab-menu-toggle]");
+      const labMenuPanel = labMenu?.querySelector("[data-lab-menu-panel]");
+      const labTreeTriggers = Array.from(labMenu?.querySelectorAll("[data-lab-tree-trigger]") || []);
+      const labBranchBacks = Array.from(labMenu?.querySelectorAll("[data-lab-branch-back]") || []);
+      const labLayerTimers = new WeakMap();
+      const labReduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      function clearLabLayerTimer(layer) {
+        const timer = labLayerTimers.get(layer);
+        if (timer) window.clearTimeout(timer);
+        labLayerTimers.delete(layer);
+      }
+
+      function showLabLayer(layer) {
+        if (!layer) return;
+        clearLabLayerTimer(layer);
+        layer.hidden = false;
+        layer.dataset.state = "opening";
+        if (labReduceMotion) {
+          layer.dataset.state = "open";
+          return;
+        }
+        layer.getBoundingClientRect();
+        layer.dataset.state = "open";
+      }
+
+      function hideLabLayer(layer) {
+        if (!layer || layer.hidden || layer.dataset.state === "closing") return;
+        clearLabLayerTimer(layer);
+        layer.dataset.state = "closing";
+        const finish = () => {
+          if (layer.dataset.state !== "closing") return;
+          layer.hidden = true;
+          layer.removeAttribute("data-state");
+          labLayerTimers.delete(layer);
+        };
+        if (labReduceMotion) {
+          finish();
+          return;
+        }
+        labLayerTimers.set(layer, window.setTimeout(finish, 240));
+      }
+
+      function collapseLabBranches(exceptTrigger = null) {
+        labTreeTriggers.forEach((trigger) => {
+          if (trigger === exceptTrigger) return;
+          trigger.setAttribute("aria-expanded", "false");
+          const branchId = trigger.getAttribute("aria-controls");
+          const branch = branchId ? document.getElementById(branchId) : null;
+          hideLabLayer(branch);
+        });
+      }
+
+      function setLabMenuOpen(open, returnFocus = false) {
+        if (!labMenuToggle || !labMenuPanel) return;
+        labMenuToggle.setAttribute("aria-expanded", String(open));
+        labMenu.classList.toggle("is-open", open);
+        if (open) showLabLayer(labMenuPanel);
+        else hideLabLayer(labMenuPanel);
+        if (!open) {
+          collapseLabBranches();
+          if (returnFocus) labMenuToggle.focus();
+        }
+      }
+
+      labMenuToggle?.addEventListener("click", () => {
+        setLabMenuOpen(labMenuToggle.getAttribute("aria-expanded") !== "true");
+      });
+
+      labTreeTriggers.forEach((trigger) => {
+        trigger.addEventListener("click", () => {
+          const willOpen = trigger.getAttribute("aria-expanded") !== "true";
+          collapseLabBranches(trigger);
+          trigger.setAttribute("aria-expanded", String(willOpen));
+          const branchId = trigger.getAttribute("aria-controls");
+          const branch = branchId ? document.getElementById(branchId) : null;
+          if (willOpen) showLabLayer(branch);
+          else hideLabLayer(branch);
+        });
+      });
+
+      labBranchBacks.forEach((backButton) => {
+        backButton.addEventListener("click", () => {
+          const branch = backButton.closest("[data-lab-tree-branch]");
+          const trigger = branch?.id
+            ? labTreeTriggers.find((item) => item.getAttribute("aria-controls") === branch.id)
+            : null;
+          hideLabLayer(branch);
+          if (trigger) {
+            trigger.setAttribute("aria-expanded", "false");
+            trigger.focus();
+          }
+        });
+      });
+
+      const themeToggle = document.querySelector("[data-theme-toggle]");
+
+      function syncThemeToggle() {
+        themeToggle?.setAttribute("aria-checked", String(document.documentElement.dataset.theme === "dark"));
+      }
+
+      themeToggle?.addEventListener("click", () => {
+        window.portalTheme?.set(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
+      });
+      window.addEventListener("portal-themechange", syncThemeToggle);
+      syncThemeToggle();
+
+      document.addEventListener("click", (event) => {
+        if (labMenu && !labMenu.contains(event.target)) {
+          setLabMenuOpen(false);
+        }
+
+        const tab = event.target.closest("[data-page]");
+        if (tab) {
+          setActivePage(tab.dataset.page, null);
+          revealStage();
+          return;
+        }
+
+        const link = event.target.closest("a[href]");
+        if (!link || link.target || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+
+        // Same-page anchors such as table-of-contents links scroll within the current panel.
+        const linkUrl = new URL(link.href, window.location.href);
+        if (linkUrl.hash && linkUrl.origin === window.location.origin && linkUrl.pathname === window.location.pathname) {
+          const target = findInCurrentPanel(linkUrl.hash);
+          if (target) {
+            event.preventDefault();
+            scrollToTarget(target, reduceMotion ? "auto" : "smooth");
+            window.history.replaceState(window.history.state, "", linkUrl);
+          }
+          return;
+        }
+
+        const route = link.dataset.portalRoute ?? normalizeRoute(link.href);
+        if (route === null) return;
+        if (openRoute(route)) {
+          event.preventDefault();
+          setLabMenuOpen(false);
+          revealStage();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && labMenuToggle?.getAttribute("aria-expanded") === "true") {
+          const expandedTrigger = labTreeTriggers.find((trigger) => trigger.getAttribute("aria-expanded") === "true");
+          if (expandedTrigger) {
+            collapseLabBranches();
+            expandedTrigger.focus();
+          } else {
+            setLabMenuOpen(false, true);
+          }
+        }
+      });
+
+      window.addEventListener("popstate", () => {
+        const route = normalizeRoute(window.location.href);
+        if (!route || !openRoute(route, false)) {
+          setActivePage(0);
+        }
+      });
+
+      const searchRoot = document.querySelector("[data-search-root]");
+      const searchInput = document.getElementById("portal-search-box");
+      const searchResults = document.getElementById("portal-search-results");
+      const searchUrl = searchRoot?.dataset.searchUrl || `${basePath}search-data.json`;
+      let portalPosts = [];
+
+      const withPortalBase = (path) => `${basePath}${String(path).replace(/^\/+/, "")}`;
+      const normalizeText = (value) => String(value || "").toLowerCase();
+
+      function findPortalMatches(query) {
+        const terms = normalizeText(query).trim().split(/\s+/).filter(Boolean);
+        if (terms.length === 0) return [];
+
+        return portalPosts.filter((post) => {
+          const haystack = normalizeText([
+            post.title,
+            post.description,
+            post.category,
+            ...(post.tags || []),
+            post.excerpt,
+          ].join(" "));
+          return terms.every((term) => haystack.includes(term));
+        });
+      }
+
+      function renderPortalSearch(items, query) {
+        searchResults?.replaceChildren();
+        if (!searchResults) return;
+
+        if (!query) {
+          const empty = document.createElement("p");
+          empty.className = "search-empty";
+          empty.textContent = "Type keywords to search matching posts.";
+          searchResults.appendChild(empty);
+          return;
+        }
+
+        if (items.length === 0) {
+          const empty = document.createElement("p");
+          empty.className = "search-empty";
+          empty.textContent = "No matching posts found yet.";
+          searchResults.appendChild(empty);
+          return;
+        }
+
+        items.forEach((post) => {
+          const card = document.createElement("article");
+          card.className = "search-result-card";
+
+          const title = document.createElement("a");
+          title.className = "post-title-link";
+          title.href = withPortalBase(post.url);
+          title.textContent = post.title;
+
+          const meta = document.createElement("small");
+          meta.textContent = `${post.category} / ${post.reading}`;
+
+          const desc = document.createElement("p");
+          desc.textContent = post.description || post.excerpt || "";
+
+          card.append(title, meta, desc);
+          searchResults.appendChild(card);
+        });
+      }
+
+      function runPortalSearch(query) {
+        renderPortalSearch(findPortalMatches(query), query.trim());
+      }
+
+      let searchIndexLoaded = false;
+
+      function setSearchQuery(query) {
+        if (!searchInput) return;
+        searchInput.value = query;
+        if (searchIndexLoaded) runPortalSearch(query);
+      }
+
+      fetch(searchUrl)
+        .then((response) => response.json())
+        .then((data) => {
+          portalPosts = Array.isArray(data) ? data : [];
+          searchIndexLoaded = true;
+          runPortalSearch(searchInput?.value || "");
+        })
+        .catch(() => {
+          if (searchResults) searchResults.textContent = "Search index failed to load.";
+        });
+
+      searchInput?.addEventListener("input", () => {
+        runPortalSearch(searchInput.value);
+        // Keep the query in the address bar so a search can be shared or reloaded.
+        if (!searchRoot?.classList.contains("is-current")) return;
+        const url = new URL(window.location.href);
+        const query = searchInput.value.trim();
+        if (query) url.searchParams.set("q", query);
+        else url.searchParams.delete("q");
+        window.history.replaceState(window.history.state, "", url);
+      });
+
+      // Open the panel for the URL this page was served at; the server already rendered it as current.
+      const initialRoute = normalizeRoute(window.location.href);
+      if (!initialRoute || !openRoute(initialRoute, false)) setActivePage(0);
+      document.querySelectorAll(".article-panel").forEach(enhanceArticle);
+      // Anchor jumps can scroll the clipped stage sideways; keep it aligned with the track.
+      stage.scrollLeft = 0;
+      if (window.location.hash) {
+        const target = findInCurrentPanel(window.location.hash);
+        if (target) requestAnimationFrame(() => scrollToTarget(target));
+      }
+      window.portalRouter = { refresh: refreshPortalRouting, openPanel, openRoute, setActivePage };
+
+      // Only signed-in administrators need the editor, so visitors never download it.
+      let hasAdminSession = false;
+      try {
+        hasAdminSession = Boolean(
+          sessionStorage.getItem("portal-admin-token") || sessionStorage.getItem("portal-local-admin"),
+        );
+      } catch {}
+      if (hasAdminSession || /(^|[#&])admin_token=/.test(window.location.hash)) {
+        const editorScript = document.createElement("script");
+        editorScript.type = "module";
+        editorScript.src = document.body.dataset.editorSrc;
+        document.body.appendChild(editorScript);
+      }
+    </script>
+  </body>
+</html>

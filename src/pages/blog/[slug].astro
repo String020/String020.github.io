@@ -1,146 +1,29 @@
 ---
 import { getCollection, render } from "astro:content";
-import Comments from "../../components/Comments.astro";
-import CommentsScript from "../../components/CommentsScript.astro";
-import ThemeInit from "../../components/ThemeInit.astro";
-import { site } from "../../data/site";
-import { formatDate, getAdjacentPosts, getCategory, getImageUrl, getReadingStats, getSeries, isPublished, slugifyTaxonomy, sortPostsByDateOnly } from "../../lib/blog";
-import { backgroundStyle } from "../../lib/images";
-import "../../styles/global.css";
-import "../../styles/blog-features.css";
+import Portal from "../../components/Portal.astro";
+import { getImageUrl, isPublished } from "../../lib/blog";
 
 export async function getStaticPaths() {
-  const posts = sortPostsByDateOnly((await getCollection("blog")).filter(isPublished));
-
-  return posts.map((post) => ({
-    params: { slug: post.id },
-    props: { post, posts },
-  }));
+  const posts = (await getCollection("blog")).filter(isPublished);
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
 }
 
-const { post, posts } = Astro.props;
-const { Content, headings } = await render(post);
-const toc = headings.filter((heading) => heading.depth >= 2 && heading.depth <= 3);
-const stats = getReadingStats(post);
-const category = getCategory(post);
-const series = getSeries(post);
-const { previous, next } = getAdjacentPosts(posts, post);
+const { post } = Astro.props;
+const { Content } = await render(post);
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
-const formattedDate = formatDate(post.data.date);
-const updatedDate = post.data.updated ? formatDate(post.data.updated) : "";
 const image = getImageUrl(post, withBase);
 ---
 
-<!doctype html>
-<html lang={post.data.lang || "zh-CN"}>
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href={withBase("favicon.svg")} />
-    <ThemeInit />
-    <meta name="description" content={post.data.description} />
-    <title>{post.data.title} | {site.brand.name}</title>
-  </head>
-  <body style={backgroundStyle}>
-    <div class="backdrop" aria-hidden="true"></div>
-    <div class="soft-wash" aria-hidden="true"></div>
-
-    <main class="article-shell wide panel">
-      <a class="back-link" href={withBase("blog/")}>Back to blog</a>
-      <div class="article-layout">
-        <article class="article-card">
-          <header class="article-header">
-            {image && <img class="article-cover" src={image} alt="" />}
-            <time datetime={post.data.date.toISOString()}>{formattedDate}</time>
-            <h1>{post.data.title}</h1>
-            <p>{post.data.description}</p>
-            <div class="article-meta">
-              <a class="meta-pill" href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}>{category}</a>
-              {series && <a class="meta-pill" href={withBase(`blog/series/${slugifyTaxonomy(series)}/`)}>{series}</a>}
-              <span class="meta-pill">{stats.label}</span>
-              {updatedDate && <span class="meta-pill">Updated {updatedDate}</span>}
-              {post.data.pinned && <span class="meta-pill">Pinned</span>}
-            </div>
-            <div class="article-tags">
-              {post.data.tags.map((tag) => (
-                <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
-              ))}
-            </div>
-          </header>
-          <div class="article-body">
-            <Content />
-          </div>
-
-          <nav class="post-nav" aria-label="Post navigation">
-            {previous ? (
-              <a href={withBase(`blog/${previous.id}/`)}>
-                <span>Previous</span>
-                <strong>{previous.data.title}</strong>
-              </a>
-            ) : <span></span>}
-            {next ? (
-              <a href={withBase(`blog/${next.id}/`)}>
-                <span>Next</span>
-                <strong>{next.data.title}</strong>
-              </a>
-            ) : <span></span>}
-          </nav>
-
-          {post.data.comment && <Comments term={`blog/${post.id}`} autoload />}
-        </article>
-
-        {toc.length > 0 && (
-          <aside class="toc-panel" aria-label="Table of contents">
-            <strong>Contents</strong>
-            {toc.map((heading) => (
-              <a class={`depth-${heading.depth}`} href={`#${heading.slug}`}>{heading.text}</a>
-            ))}
-          </aside>
-        )}
-      </div>
-    </main>
-
-    <script is:inline>
-      document.querySelectorAll(".article-body pre").forEach((pre) => {
-        if (pre.querySelector(".copy-code-button")) return;
-        const code = pre.querySelector("code");
-        if (!code) return;
-
-        const button = document.createElement("button");
-        button.className = "copy-code-button";
-        button.type = "button";
-        button.textContent = "Copy";
-        button.addEventListener("click", async () => {
-          try {
-            await navigator.clipboard.writeText(code.textContent || "");
-            button.textContent = "Copied";
-            window.setTimeout(() => {
-              button.textContent = "Copy";
-            }, 1200);
-          } catch {
-            button.textContent = "Failed";
-          }
-        });
-        pre.appendChild(button);
-      });
-
-      document.querySelectorAll(".article-body blockquote").forEach((quote) => {
-        const firstParagraph = quote.querySelector("p");
-        if (!firstParagraph) return;
-        const text = firstParagraph.textContent || "";
-        const match = text.match(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i);
-        if (!match) return;
-        const type = match[1].toLowerCase();
-        quote.classList.add("callout", `callout-${type}`);
-        const label = document.createElement("strong");
-        label.className = "callout-label";
-        label.textContent = type.toUpperCase();
-        firstParagraph.textContent = text.replace(/^\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\]\s*/i, "");
-        quote.prepend(label);
-        if (!firstParagraph.textContent.trim()) firstParagraph.remove();
-      });
-    </script>
-    <CommentsScript />
-  </body>
-</html>
+<Portal
+  route={`blog/${post.id}/`}
+  title={post.data.title}
+  description={post.data.description}
+  image={image || undefined}
+  ogType="article"
+  publishedTime={post.data.date}
+  lang={post.data.lang}
+  articleId={post.id}
+>
+  <Content slot="article" />
+</Portal>

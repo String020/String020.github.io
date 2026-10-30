@@ -1,12 +1,6 @@
 ---
-import ManagedCardGrid from "../components/ManagedCardGrid.astro";
-import RichContent from "../components/RichContent.astro";
-import ThemeInit from "../components/ThemeInit.astro";
+import Portal from "../components/Portal.astro";
 import { managedNavigation, portalContent, type ManagedPage, type NavigationSection } from "../lib/portal-content";
-import { site } from "../data/site";
-import { backgroundStyle } from "../lib/images";
-import "../styles/global.css";
-import "../styles/blog-features.css";
 
 type RouteProps =
   | { routeType: "navigation"; navigation: NavigationSection }
@@ -27,67 +21,19 @@ export function getStaticPaths() {
 const props = Astro.props as RouteProps;
 const base = import.meta.env.BASE_URL;
 const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
-const title = props.routeType === "navigation" ? props.navigation.title : props.page.title;
-const description = props.routeType === "navigation" ? props.navigation.description : props.page.description;
-const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site) : null;
-const shareImage = props.routeType === "page" && props.page.shareImage
-  ? new URL(withBase(props.page.shareImage), Astro.site || Astro.url.origin)
-  : null;
-const parent = props.routeType === "page"
-  ? portalContent.navigation.find((item) => item.id === props.page.parentNavigationId)
-  : null;
+const portalProps =
+  props.routeType === "navigation"
+    ? {
+        route: `${props.navigation.slug}/`,
+        title: props.navigation.title,
+        description: props.navigation.description,
+      }
+    : {
+        route: `${props.page.route}/`,
+        title: props.page.title,
+        description: props.page.description,
+        image: props.page.shareImage ? withBase(props.page.shareImage) : undefined,
+      };
 ---
 
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link rel="icon" type="image/svg+xml" href={withBase("favicon.svg")} />
-    <ThemeInit />
-    <meta name="description" content={description} />
-    <meta name="robots" content="index,follow" />
-    {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content={`${title} — Str1ng`} />
-    <meta property="og:description" content={description} />
-    {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-    {shareImage && <meta property="og:image" content={shareImage} />}
-    <title>{title} — Str1ng</title>
-  </head>
-  <body style={backgroundStyle}>
-    <div class="backdrop" aria-hidden="true"></div>
-    <div class="soft-wash" aria-hidden="true"></div>
-    <main class="section-shell panel managed-route-shell">
-      <a class="back-link" href={withBase(parent?.slug ? `${parent.slug}/` : "")}>← {parent ? parent.title : site.brand.name}</a>
-      {
-        props.routeType === "navigation" ? (
-          <>
-            <header class="section-header">
-              <p>Navigation</p>
-              <div><span class="section-badge">{props.navigation.label.slice(0, 2)}</span></div>
-              <h1>{props.navigation.title}</h1>
-              <span>{props.navigation.description}</span>
-            </header>
-            <ManagedCardGrid
-              blocks={props.navigation.blocks}
-              pages={portalContent.pages}
-              base={base}
-              navigationId={props.navigation.id}
-            />
-          </>
-        ) : (
-          <>
-            <header class="section-header">
-              <p>{parent?.title || "Page"}</p>
-              <div><span class="section-badge">{props.page.badge}</span></div>
-              <h1>{props.page.title}</h1>
-              <span>{props.page.description}</span>
-            </header>
-            <RichContent blocks={props.page.content} base={base} />
-          </>
-        )
-      }
-    </main>
-  </body>
-</html>
+<Portal {...portalProps} />

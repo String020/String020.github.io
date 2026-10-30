@@ -116,6 +116,15 @@
   grid-template-columns: minmax(0, 1fr) 220px;
 }
 
+/* Article panels only get a contents column once their body has headings. */
+.article-panel .article-layout:not(.has-toc) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.article-body :is(h2, h3)[id] {
+  scroll-margin-top: 88px;
+}
+
 .article-card {
   min-width: 0;
 }
