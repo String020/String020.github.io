@@ -1,8 +1,8 @@
-import { portalContent } from "../lib/portal-content";
+import { editorPosts, portalContent } from "../lib/portal-content";
 
-// Full published content, including editor posts, for the portal editor to start from.
+// Full published content, including every editor post, for the portal editor to start from.
 export function GET() {
-  return new Response(JSON.stringify(portalContent), {
+  return new Response(JSON.stringify({ ...portalContent, posts: editorPosts }), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
     },

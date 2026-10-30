@@ -92,7 +92,13 @@ export type PortalContent = {
 
 export const portalContent = portalContentData as PortalContent;
 
-export const editorPosts = portalContent.posts ?? [];
+// Published editor posts are one file each in src/data/posts; the first editor version kept them in
+// portal-content.json, so both sources are read and files win when a post appears in both.
+const postFiles = import.meta.glob<EditorPost>("../data/posts/*.json", { eager: true, import: "default" });
+const postsById = new Map((portalContent.posts ?? []).map((post) => [post.id, post]));
+Object.values(postFiles).forEach((post) => postsById.set(post.id, post));
+
+export const editorPosts = Array.from(postsById.values());
 
 const isPublicUrl = (value: string | null | undefined) => /^(https?:)?\/\//.test(value ?? "") || (value ?? "").startsWith("/");
 
