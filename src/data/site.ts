@@ -142,6 +142,13 @@ export const site = {
       text: "Use the website like a personal dashboard: project status, notes, skills, links, contact.",
     },
   },
+  comments: {
+    // Giscus threads live in Discussions of this public repository (Announcements category).
+    repo: "String020/blog-comments",
+    repoId: "R_kgDOVc-zog",
+    category: "Announcements",
+    categoryId: "DIC_kwDOVc-zos4DJ_xY",
+  },
   lab: {
     eyebrow: "Lab",
     title: "Future 3x3 widget space.",

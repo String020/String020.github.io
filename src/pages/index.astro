@@ -3,6 +3,8 @@ import { Image } from "astro:assets";
 import { getCollection } from "astro:content";
 import profilePhoto from "../assets/profile-photo.jpg";
 import ManagedCardGrid from "../components/ManagedCardGrid.astro";
+import Comments from "../components/Comments.astro";
+import CommentsScript from "../components/CommentsScript.astro";
 import RichContent from "../components/RichContent.astro";
 import ThemeInit from "../components/ThemeInit.astro";
 import { site } from "../data/site";
@@ -395,6 +397,7 @@ const topTags = Array.from(tagCounts.entries())
                 <div class="article-body" data-article-src={withBase(`blog/${post.id}/`)}>
                   <p class="article-loading">Loading…</p>
                 </div>
+                {post.data.comment && <Comments term={`blog/${post.id}`} />}
               </article>
             ))
           }
@@ -622,6 +625,7 @@ const topTags = Array.from(tagCounts.entries())
 
     <div class="editor-toast" data-editor-toast hidden role="status"></div>
     <script id="portal-content-data" type="application/json" set:html={serializedPortalContent}></script>
+    <CommentsScript />
 
     <script is:inline>
       const track = document.querySelector("[data-track]");
@@ -733,6 +737,7 @@ const topTags = Array.from(tagCounts.entries())
 
         const activePanel = panels[pageIndex];
         loadArticleBody(activePanel);
+        window.portalComments?.mount(activePanel?.querySelector("[data-comments]"));
         const activeTab = activePanel?.dataset.tab ? Number(activePanel.dataset.tab) : pageIndex;
 
         tabs.forEach((tab, currentIndex) => {

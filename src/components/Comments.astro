@@ -1,0 +1,25 @@
+---
+import { site } from "../data/site";
+
+type Props = {
+  term: string;
+  autoload?: boolean;
+};
+
+const { term, autoload = false } = Astro.props;
+const { repo, repoId, category, categoryId } = site.comments;
+---
+
+<section
+  class="comments"
+  aria-label="Comments"
+  data-comments
+  data-comments-autoload={autoload ? "" : undefined}
+  data-repo={repo}
+  data-repo-id={repoId}
+  data-category={category}
+  data-category-id={categoryId}
+  data-term={term}
+>
+  <h2>Comments</h2>
+</section>

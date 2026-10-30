@@ -1,0 +1,47 @@
+---
+// Loads Giscus into [data-comments] containers and keeps its theme in sync with the site theme.
+---
+
+<script is:inline>
+  (() => {
+    const giscusOrigin = "https://giscus.app";
+    const giscusTheme = (theme) => (theme === "dark" ? "transparent_dark" : "light");
+
+    function mount(container) {
+      if (!container || container.dataset.commentsMounted) return;
+      container.dataset.commentsMounted = "true";
+      const { repo, repoId, category, categoryId, term } = container.dataset;
+      const config = {
+        repo,
+        "repo-id": repoId,
+        category,
+        "category-id": categoryId,
+        mapping: "specific",
+        term,
+        strict: "1",
+        "reactions-enabled": "1",
+        "emit-metadata": "0",
+        "input-position": "bottom",
+        theme: giscusTheme(document.documentElement.dataset.theme),
+        lang: "zh-CN",
+        loading: "lazy",
+      };
+      const script = document.createElement("script");
+      script.src = `${giscusOrigin}/client.js`;
+      script.async = true;
+      script.crossOrigin = "anonymous";
+      Object.entries(config).forEach(([name, value]) => script.setAttribute(`data-${name}`, value));
+      container.append(script);
+    }
+
+    window.addEventListener("portal-themechange", (event) => {
+      const message = { giscus: { setConfig: { theme: giscusTheme(event.detail.theme) } } };
+      document.querySelectorAll("iframe.giscus-frame").forEach((frame) => {
+        frame.contentWindow?.postMessage(message, giscusOrigin);
+      });
+    });
+
+    window.portalComments = { mount };
+    document.querySelectorAll("[data-comments][data-comments-autoload]").forEach(mount);
+  })();
+</script>

@@ -296,6 +296,20 @@
   text-transform: uppercase;
 }
 
+.comments {
+  border-top: 1px solid rgba(var(--ink-rgb), 0.1);
+  margin-top: 34px;
+  padding-top: 20px;
+}
+
+.comments h2 {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 780;
+  margin: 0 0 14px;
+  text-transform: uppercase;
+}
+
 .archive-year {
   border-top: 1px solid rgba(var(--ink-rgb), 0.1);
   padding: 20px 0;
