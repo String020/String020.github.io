@@ -40,6 +40,8 @@
 html {
   font-size: 15px;
   min-height: 100%;
+  /* Reserve the scrollbar's width so the centered layout doesn't shift when panel height changes. */
+  scrollbar-gutter: stable;
 }
 
 body {
