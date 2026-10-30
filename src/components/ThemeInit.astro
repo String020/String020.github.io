@@ -1,0 +1,43 @@
+---
+// Resolves the saved theme preference (system, light or dark) before first paint to avoid a flash.
+---
+
+<script is:inline>
+  (() => {
+    const storageKey = "portal-theme";
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const readPreference = () => {
+      try {
+        const value = localStorage.getItem(storageKey);
+        return value === "light" || value === "dark" ? value : "system";
+      } catch {
+        return "system";
+      }
+    };
+
+    const apply = () => {
+      const preference = readPreference();
+      const theme = preference === "system" ? (media.matches ? "dark" : "light") : preference;
+      document.documentElement.dataset.theme = theme;
+      document.documentElement.dataset.themePreference = preference;
+      window.dispatchEvent(new CustomEvent("portal-themechange", { detail: { theme, preference } }));
+    };
+
+    window.portalTheme = {
+      set(preference) {
+        try {
+          if (preference === "light" || preference === "dark") localStorage.setItem(storageKey, preference);
+          else localStorage.removeItem(storageKey);
+        } catch {}
+        apply();
+      },
+    };
+
+    media.addEventListener("change", apply);
+    window.addEventListener("storage", (event) => {
+      if (event.key === storageKey) apply();
+    });
+    apply();
+  })();
+</script>

@@ -4,6 +4,7 @@ import { getCollection } from "astro:content";
 import profilePhoto from "../assets/profile-photo.jpg";
 import ManagedCardGrid from "../components/ManagedCardGrid.astro";
 import RichContent from "../components/RichContent.astro";
+import ThemeInit from "../components/ThemeInit.astro";
 import { site } from "../data/site";
 import { formatDate, getCategory, isPublished, slugifyTaxonomy, sortPosts } from "../lib/blog";
 import { backgroundStyle } from "../lib/images";
@@ -33,6 +34,11 @@ const tabIndexByNavigationId = new Map(navigation.map((item, index) => [item.id,
 const editorScriptUrl = withBase("assets/portal-editor.js");
 const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL || "";
 const serializedPortalContent = JSON.stringify(portalContent).replace(/</g, "\\u003c");
+const themeOptions = [
+  { value: "system", label: "跟随系统" },
+  { value: "light", label: "浅色" },
+  { value: "dark", label: "深色" },
+];
 const statCounts: Record<string, number> = {
   "Main sections": navigation.length,
   "Blog posts": blogPosts.length,
@@ -58,6 +64,7 @@ const topTags = Array.from(tagCounts.entries())
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href={withBase("favicon.svg")} />
+    <ThemeInit />
     <meta name="description" content={site.description} />
     {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
     <meta property="og:type" content="website" />
@@ -154,7 +161,17 @@ const topTags = Array.from(tagCounts.entries())
                         <span aria-hidden="true">‹</span>
                         <strong>{item}</strong>
                       </button>
-                      <p>等待开发</p>
+                      {item === "Theme switcher" ? (
+                        <div class="lab-theme-options" role="group" aria-label="Color theme">
+                          {themeOptions.map((option) => (
+                            <button class="lab-theme-option" type="button" data-theme-option={option.value} aria-pressed="false">
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <p>等待开发</p>
+                      )}
                     </div>
                   </li>
                 ))
@@ -848,6 +865,21 @@ const topTags = Array.from(tagCounts.entries())
           }
         });
       });
+
+      const themeOptionButtons = Array.from(document.querySelectorAll("[data-theme-option]"));
+
+      function syncThemeOptions() {
+        const preference = document.documentElement.dataset.themePreference || "system";
+        themeOptionButtons.forEach((button) => {
+          button.setAttribute("aria-pressed", String(button.dataset.themeOption === preference));
+        });
+      }
+
+      themeOptionButtons.forEach((button) => {
+        button.addEventListener("click", () => window.portalTheme?.set(button.dataset.themeOption));
+      });
+      window.addEventListener("portal-themechange", syncThemeOptions);
+      syncThemeOptions();
 
       document.addEventListener("click", (event) => {
         if (labMenu && !labMenu.contains(event.target)) {

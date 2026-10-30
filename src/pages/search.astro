@@ -1,6 +1,7 @@
 ---
 import { site } from "../data/site";
 import { backgroundStyle } from "../lib/images";
+import ThemeInit from "../components/ThemeInit.astro";
 import "../styles/global.css";
 import "../styles/blog-features.css";
 
@@ -14,6 +15,7 @@ const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href={withBase("favicon.svg")} />
+    <ThemeInit />
     <meta name="description" content="Search blog posts." />
     <title>Search | {site.brand.name}</title>
   </head>

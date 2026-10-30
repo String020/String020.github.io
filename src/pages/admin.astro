@@ -1,5 +1,6 @@
 ---
 import { backgroundStyle } from "../lib/images";
+import ThemeInit from "../components/ThemeInit.astro";
 import "../styles/global.css";
 
 const base = import.meta.env.BASE_URL;
@@ -13,6 +14,7 @@ const apiBase = import.meta.env.PUBLIC_ADMIN_API_URL || "";
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <link rel="icon" type="image/svg+xml" href={withBase("favicon.svg")} />
+    <ThemeInit />
     <meta name="robots" content="noindex,nofollow" />
     <meta name="description" content="Private administration entry for the Str1ng personal portal." />
     <title>Admin — Str1ng</title>
