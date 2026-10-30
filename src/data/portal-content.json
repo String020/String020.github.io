@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "publishedAt": "2026-07-17T00:00:00.000Z",
+  "publishedAt": "2026-10-30T16:11:14.079Z",
   "navigation": [
     {
       "id": "string",
@@ -38,7 +38,10 @@
           "badge": "TL",
           "title": "Timeline",
           "summary": "A chronological view for posts and later updates.",
-          "destination": { "kind": "url", "href": "blog/archive/" }
+          "destination": {
+            "kind": "url",
+            "href": "blog/archive/"
+          }
         },
         {
           "id": "archives-categories",
@@ -47,7 +50,10 @@
           "badge": "CA",
           "title": "Categories",
           "summary": "Broad groups for blog posts.",
-          "destination": { "kind": "url", "href": "blog/" }
+          "destination": {
+            "kind": "url",
+            "href": "blog/"
+          }
         },
         {
           "id": "archives-tags",
@@ -56,7 +62,10 @@
           "badge": "TG",
           "title": "Tags",
           "summary": "Small topics that keep notes searchable.",
-          "destination": { "kind": "url", "href": "blog/" }
+          "destination": {
+            "kind": "url",
+            "href": "blog/"
+          }
         },
         {
           "id": "archives-rss",
@@ -65,7 +74,10 @@
           "badge": "RS",
           "title": "RSS",
           "summary": "A lightweight RSS feed for published posts.",
-          "destination": { "kind": "url", "href": "rss.xml" }
+          "destination": {
+            "kind": "url",
+            "href": "rss.xml"
+          }
         }
       ]
     },
@@ -85,7 +97,10 @@
           "badge": "AN",
           "title": "Anime",
           "summary": "Track watching progress, ratings, and small notes.",
-          "destination": { "kind": "page", "pageId": "page-anime" }
+          "destination": {
+            "kind": "page",
+            "pageId": "page-anime"
+          }
         },
         {
           "id": "my-music",
@@ -94,7 +109,10 @@
           "badge": "MU",
           "title": "Music",
           "summary": "Playlists, favorite tracks, and listening notes.",
-          "destination": { "kind": "page", "pageId": "page-music" }
+          "destination": {
+            "kind": "page",
+            "pageId": "page-music"
+          }
         },
         {
           "id": "my-devices",
@@ -103,7 +121,10 @@
           "badge": "DV",
           "title": "Devices",
           "summary": "A small inventory of tools, devices, and setup notes.",
-          "destination": { "kind": "page", "pageId": "page-devices" }
+          "destination": {
+            "kind": "page",
+            "pageId": "page-devices"
+          }
         },
         {
           "id": "my-collection",
@@ -112,7 +133,10 @@
           "badge": "CL",
           "title": "Collection",
           "summary": "Saved links, screenshots, references, and things worth keeping.",
-          "destination": { "kind": "page", "pageId": "page-collection" }
+          "destination": {
+            "kind": "page",
+            "pageId": "page-collection"
+          }
         }
       ]
     },
@@ -132,7 +156,10 @@
           "badge": "AB",
           "title": "About me",
           "summary": "A longer introduction page for background, interests, and goals.",
-          "destination": { "kind": "page", "pageId": "page-about" }
+          "destination": {
+            "kind": "page",
+            "pageId": "page-about"
+          }
         },
         {
           "id": "about-skills",
@@ -141,7 +168,10 @@
           "badge": "SK",
           "title": "Skills",
           "summary": "A compact skill board for languages, tools, and learning status.",
-          "destination": { "kind": "page", "pageId": "page-skills" }
+          "destination": {
+            "kind": "page",
+            "pageId": "page-skills"
+          }
         },
         {
           "id": "about-projects",
@@ -150,7 +180,10 @@
           "badge": "PJ",
           "title": "Projects",
           "summary": "Selected work, experiments, and course-related builds.",
-          "destination": { "kind": "page", "pageId": "page-projects" }
+          "destination": {
+            "kind": "page",
+            "pageId": "page-projects"
+          }
         },
         {
           "id": "about-contact",
@@ -159,7 +192,10 @@
           "badge": "CT",
           "title": "Contact",
           "summary": "GitHub, links, and future contact methods.",
-          "destination": { "kind": "page", "pageId": "page-contact" }
+          "destination": {
+            "kind": "page",
+            "pageId": "page-contact"
+          }
         }
       ]
     }
@@ -175,9 +211,28 @@
       "badge": "AN",
       "shareImage": null,
       "content": [
-        { "id": "anime-intro", "type": "paragraph", "text": "Track what is currently playing, completed titles, ratings, and small viewing notes." },
-        { "id": "anime-heading", "type": "heading", "level": 2, "text": "Sections" },
-        { "id": "anime-list", "type": "list", "style": "unordered", "items": ["Watching", "Completed", "Ratings", "Notes"] }
+        {
+          "id": "anime-intro",
+          "type": "paragraph",
+          "text": "Track what is currently playing, completed titles, ratings, and small viewing notes."
+        },
+        {
+          "id": "anime-heading",
+          "type": "heading",
+          "level": 2,
+          "text": "Sections"
+        },
+        {
+          "id": "anime-list",
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Watching",
+            "Completed",
+            "Ratings",
+            "Notes"
+          ]
+        }
       ]
     },
     {
@@ -190,9 +245,28 @@
       "badge": "MU",
       "shareImage": null,
       "content": [
-        { "id": "music-intro", "type": "paragraph", "text": "Keep playlists, favorite tracks, albums, and short listening notes in one place." },
-        { "id": "music-heading", "type": "heading", "level": 2, "text": "Listening library" },
-        { "id": "music-list", "type": "list", "style": "unordered", "items": ["Playlists", "Favorite tracks", "Albums", "Listening notes"] }
+        {
+          "id": "music-intro",
+          "type": "paragraph",
+          "text": "Keep playlists, favorite tracks, albums, and short listening notes in one place."
+        },
+        {
+          "id": "music-heading",
+          "type": "heading",
+          "level": 2,
+          "text": "Listening library"
+        },
+        {
+          "id": "music-list",
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Playlists",
+            "Favorite tracks",
+            "Albums",
+            "Listening notes"
+          ]
+        }
       ]
     },
     {
@@ -205,8 +279,22 @@
       "badge": "DV",
       "shareImage": null,
       "content": [
-        { "id": "devices-intro", "type": "paragraph", "text": "Document the devices, software, and small tools that make up the current setup." },
-        { "id": "devices-list", "type": "list", "style": "unordered", "items": ["Laptop", "Tools", "Desk setup", "Software"] }
+        {
+          "id": "devices-intro",
+          "type": "paragraph",
+          "text": "Document the devices, software, and small tools that make up the current setup."
+        },
+        {
+          "id": "devices-list",
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Laptop",
+            "Tools",
+            "Desk setup",
+            "Software"
+          ]
+        }
       ]
     },
     {
@@ -219,8 +307,22 @@
       "badge": "CL",
       "shareImage": null,
       "content": [
-        { "id": "collection-intro", "type": "paragraph", "text": "A quiet place for saved links, screenshots, references, and favorites." },
-        { "id": "collection-list", "type": "list", "style": "unordered", "items": ["Links", "Screenshots", "References", "Favorites"] }
+        {
+          "id": "collection-intro",
+          "type": "paragraph",
+          "text": "A quiet place for saved links, screenshots, references, and favorites."
+        },
+        {
+          "id": "collection-list",
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Links",
+            "Screenshots",
+            "References",
+            "Favorites"
+          ]
+        }
       ]
     },
     {
@@ -233,8 +335,22 @@
       "badge": "AB",
       "shareImage": null,
       "content": [
-        { "id": "about-intro", "type": "paragraph", "text": "A personal introduction covering background, study direction, interests, and goals." },
-        { "id": "about-list", "type": "list", "style": "unordered", "items": ["Profile", "Study direction", "Interests", "Contact"] }
+        {
+          "id": "about-intro",
+          "type": "paragraph",
+          "text": "A personal introduction covering background, study direction, interests, and goals."
+        },
+        {
+          "id": "about-list",
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Profile",
+            "Study direction",
+            "Interests",
+            "Contact"
+          ]
+        }
       ]
     },
     {
@@ -247,8 +363,22 @@
       "badge": "SK",
       "shareImage": null,
       "content": [
-        { "id": "skills-intro", "type": "paragraph", "text": "Technical abilities and learning progress across programming, automation, interface work, and version control." },
-        { "id": "skills-list", "type": "list", "style": "unordered", "items": ["JavaScript", "Python", "Web UI", "Git"] }
+        {
+          "id": "skills-intro",
+          "type": "paragraph",
+          "text": "Technical abilities and learning progress across programming, automation, interface work, and version control."
+        },
+        {
+          "id": "skills-list",
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "JavaScript",
+            "Python",
+            "Web UI",
+            "Git"
+          ]
+        }
       ]
     },
     {
@@ -261,8 +391,21 @@
       "badge": "PJ",
       "shareImage": null,
       "content": [
-        { "id": "projects-intro", "type": "paragraph", "text": "Selected builds and experiments, from course planning to cloud demos." },
-        { "id": "projects-list", "type": "list", "style": "unordered", "items": ["Course Planner", "Algorithm Visual Notes", "Cloud Demo Lab"] }
+        {
+          "id": "projects-intro",
+          "type": "paragraph",
+          "text": "Selected builds and experiments, from course planning to cloud demos."
+        },
+        {
+          "id": "projects-list",
+          "type": "list",
+          "style": "unordered",
+          "items": [
+            "Course Planner",
+            "Algorithm Visual Notes",
+            "Cloud Demo Lab"
+          ]
+        }
       ]
     },
     {
@@ -275,10 +418,41 @@
       "badge": "CT",
       "shareImage": null,
       "content": [
-        { "id": "contact-intro", "type": "paragraph", "text": "Use the links below to find current public profiles and contact routes." },
-        { "id": "contact-github", "type": "link", "label": "GitHub", "href": "https://github.com/String020" }
+        {
+          "id": "contact-intro",
+          "type": "paragraph",
+          "text": "Use the links below to find current public profiles and contact routes."
+        },
+        {
+          "id": "contact-github",
+          "type": "link",
+          "label": "GitHub",
+          "href": "https://github.com/String020"
+        }
       ]
     }
   ],
-  "redirects": []
+  "redirects": [],
+  "posts": [
+    {
+      "id": "post-86e4fb90-f4e1-4be6-bc28-e87761d2807a",
+      "slug": "qiebabeihuangechang",
+      "title": "且把悲欢歌唱",
+      "description": "",
+      "date": "2026-10-31",
+      "updated": null,
+      "category": "General",
+      "tags": [
+        "0014556"
+      ],
+      "series": "0014556",
+      "lang": "zh-CN",
+      "pinned": false,
+      "draft": false,
+      "comment": true,
+      "image": null,
+      "body": "**且把悲欢歌唱**",
+      "assets": {}
+    }
+  ]
 }
