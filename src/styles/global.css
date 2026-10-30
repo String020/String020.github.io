@@ -112,7 +112,7 @@ a {
   box-shadow: none;
   display: grid;
   gap: 14px;
-  grid-template-columns: 170px minmax(0, 1fr) 330px;
+  grid-template-columns: 170px minmax(0, 1fr) 340px;
   left: 50%;
   max-width: 1260px;
   min-height: 64px;
@@ -233,8 +233,10 @@ a {
 }
 
 .search-pill {
+  flex-shrink: 0;
   gap: 8px;
   padding: 0 15px;
+  white-space: nowrap;
 }
 
 .search-pill svg,
