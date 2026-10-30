@@ -5,7 +5,9 @@
 <script is:inline>
   (() => {
     const giscusOrigin = "https://giscus.app";
-    const giscusTheme = (theme) => (theme === "dark" ? "transparent_dark" : "light");
+    // Each container carries absolute URLs for the site's own light and dark giscus themes.
+    const giscusTheme = (container, theme) =>
+      theme === "dark" ? container.dataset.themeDark : container.dataset.themeLight;
 
     function mount(container) {
       if (!container || container.dataset.commentsMounted) return;
@@ -22,7 +24,7 @@
         "reactions-enabled": "1",
         "emit-metadata": "0",
         "input-position": "bottom",
-        theme: giscusTheme(document.documentElement.dataset.theme),
+        theme: giscusTheme(container, document.documentElement.dataset.theme),
         lang: "zh-CN",
         loading: "lazy",
       };
@@ -35,9 +37,9 @@
     }
 
     window.addEventListener("portal-themechange", (event) => {
-      const message = { giscus: { setConfig: { theme: giscusTheme(event.detail.theme) } } };
-      document.querySelectorAll("iframe.giscus-frame").forEach((frame) => {
-        frame.contentWindow?.postMessage(message, giscusOrigin);
+      document.querySelectorAll("[data-comments-mounted]").forEach((container) => {
+        const message = { giscus: { setConfig: { theme: giscusTheme(container, event.detail.theme) } } };
+        container.querySelector("iframe.giscus-frame")?.contentWindow?.postMessage(message, giscusOrigin);
       });
     });
 

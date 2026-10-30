@@ -1,0 +1,96 @@
+/*!
+ * Giscus theme for string020.github.io (light).
+ * Syntax colors are taken from giscus's "light" theme, based on GitHub Primer.
+ * MIT License, Copyright (c) 2018 GitHub Inc. https://github.com/primer/primitives/blob/main/LICENSE
+ */
+@import url("base.css");
+
+main {
+  color-scheme: light;
+  --color-fg-default: #171717;
+  --color-fg-muted: #616161;
+  --color-fg-subtle: #9c9a95;
+  --color-canvas-default: #f7f6f18c;
+  --color-canvas-overlay: #f7f6f1;
+  --color-canvas-inset: #f7f6f1b3;
+  --color-canvas-subtle: #17171708;
+  --color-border-default: #1717171f;
+  --color-border-muted: #17171714;
+  --color-neutral-muted: #1717171a;
+  --color-btn-text: #313131;
+  --color-btn-bg: #1717170d;
+  --color-btn-border: #0000;
+  --color-btn-shadow: none;
+  --color-btn-inset-shadow: none;
+  --color-btn-hover-bg: #17171717;
+  --color-btn-hover-border: #0000;
+  --color-btn-active-bg: #1717171f;
+  --color-btn-active-border: #0000;
+  --color-btn-selected-bg: #17171714;
+  --color-btn-primary-text: #f7f6f1;
+  --color-btn-primary-bg: #171717;
+  --color-btn-primary-border: #171717;
+  --color-btn-primary-shadow: none;
+  --color-btn-primary-inset-shadow: none;
+  --color-btn-primary-hover-bg: #313131;
+  --color-btn-primary-hover-border: #313131;
+  --color-btn-primary-selected-bg: #000;
+  --color-btn-primary-selected-shadow: none;
+  --color-btn-primary-disabled-text: #f7f6f1b3;
+  --color-btn-primary-disabled-bg: #1717174d;
+  --color-btn-primary-disabled-border: #0000;
+  --color-action-list-item-default-hover-bg: #17171712;
+  --color-segmented-control-bg: #1717170d;
+  --color-segmented-control-button-bg: #f7f6f1;
+  --color-segmented-control-button-selected-border: #9c9a95;
+  --color-accent-fg: #171717;
+  --color-accent-emphasis: #171717;
+  --color-accent-muted: #17171740;
+  --color-accent-subtle: #1717170f;
+  --color-success-fg: #3f7f53;
+  --color-attention-fg: #8a6a1f;
+  --color-attention-muted: #8a6a1f66;
+  --color-attention-subtle: #8a6a1f14;
+  --color-danger-fg: #9d332e;
+  --color-danger-muted: #9d332e66;
+  --color-danger-subtle: #9d332e14;
+  --color-primer-shadow-inset: none;
+  --color-scale-gray-1: #1717170f;
+  --color-scale-blue-1: #1717171f;
+  --color-social-reaction-bg-hover: var(--color-scale-gray-1);
+  --color-social-reaction-bg-reacted-hover: var(--color-scale-blue-1);
+  --color-prettylights-syntax-comment: #6e7781;
+  --color-prettylights-syntax-constant: #0550ae;
+  --color-prettylights-syntax-entity: #8250df;
+  --color-prettylights-syntax-storage-modifier-import: #24292f;
+  --color-prettylights-syntax-entity-tag: #116329;
+  --color-prettylights-syntax-keyword: #cf222e;
+  --color-prettylights-syntax-string: #0a3069;
+  --color-prettylights-syntax-variable: #953800;
+  --color-prettylights-syntax-brackethighlighter-unmatched: #82071e;
+  --color-prettylights-syntax-invalid-illegal-text: #f6f8fa;
+  --color-prettylights-syntax-invalid-illegal-bg: #82071e;
+  --color-prettylights-syntax-carriage-return-text: #f6f8fa;
+  --color-prettylights-syntax-carriage-return-bg: #cf222e;
+  --color-prettylights-syntax-string-regexp: #116329;
+  --color-prettylights-syntax-markup-list: #3b2300;
+  --color-prettylights-syntax-markup-heading: #0550ae;
+  --color-prettylights-syntax-markup-italic: #24292f;
+  --color-prettylights-syntax-markup-bold: #24292f;
+  --color-prettylights-syntax-markup-deleted-text: #82071e;
+  --color-prettylights-syntax-markup-deleted-bg: #ffebe9;
+  --color-prettylights-syntax-markup-inserted-text: #116329;
+  --color-prettylights-syntax-markup-inserted-bg: #dafbe1;
+  --color-prettylights-syntax-markup-changed-text: #953800;
+  --color-prettylights-syntax-markup-changed-bg: #ffd8b5;
+  --color-prettylights-syntax-markup-ignored-text: #eaeef2;
+  --color-prettylights-syntax-markup-ignored-bg: #0550ae;
+  --color-prettylights-syntax-meta-diff-range: #8250df;
+  --color-prettylights-syntax-brackethighlighter-angle: #57606a;
+  --color-prettylights-syntax-sublimelinter-gutter-mark: #8c959f;
+  --color-prettylights-syntax-constant-other-reference-link: #0a3069;
+}
+
+main .gsc-loading-image {
+  background-image: url(https://github.githubassets.com/images/mona-loading-default.gif);
+}

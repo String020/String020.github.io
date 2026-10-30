@@ -8,6 +8,9 @@ type Props = {
 
 const { term, autoload = false } = Astro.props;
 const { repo, repoId, category, categoryId } = site.comments;
+// Giscus loads custom themes by absolute URL from inside its iframe.
+const themeUrl = (mode: "light" | "dark") =>
+  new URL(`${import.meta.env.BASE_URL}giscus/${mode}.css`, Astro.site ?? Astro.url).href;
 ---
 
 <section
@@ -20,6 +23,8 @@ const { repo, repoId, category, categoryId } = site.comments;
   data-category={category}
   data-category-id={categoryId}
   data-term={term}
+  data-theme-light={themeUrl("light")}
+  data-theme-dark={themeUrl("dark")}
 >
   <h2>Comments</h2>
 </section>

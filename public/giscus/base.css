@@ -1,0 +1,126 @@
+/* Shared component styling for the site's giscus themes; colors come from light.css and dark.css.
+   Primer color utilities inside the widget use !important, so overrides that touch them do too. */
+
+main {
+  font-family: "Segoe UI", "Microsoft YaHei UI", system-ui, sans-serif;
+}
+
+/* Reactions: drop the "0 reactions" heading and left-align the pill buttons. */
+.gsc-reactions-count {
+  display: none;
+}
+
+.gsc-reactions > div {
+  justify-content: flex-start;
+  margin-top: 0;
+}
+
+.gsc-reactions-button,
+.gsc-social-reaction-summary-item,
+.gsc-direct-reaction-button {
+  border-radius: 999px !important;
+}
+
+.gsc-reactions-popover {
+  border-radius: 14px !important;
+  box-shadow: 0 18px 42px rgba(20, 20, 20, 0.16);
+}
+
+.gsc-header {
+  padding-bottom: 10px;
+}
+
+.gsc-comments-count {
+  color: var(--color-fg-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* Comment box: a soft paper card with pill tabs, like the site's panels and tool links. */
+.gsc-comment-box {
+  border-radius: 16px !important;
+  overflow: hidden;
+}
+
+.gsc-comment-box-tabs {
+  align-items: center;
+  background: transparent !important;
+  border-bottom: 0 !important;
+  padding: 8px 8px 0;
+}
+
+.gsc-comment-box-tabs > div:first-child {
+  display: flex;
+  gap: 4px;
+  margin: 0 !important;
+}
+
+.gsc-comment-box-tabs > div:first-child > button {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 999px !important;
+  color: var(--color-fg-muted) !important;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin: 0 !important;
+  padding: 6px 14px !important;
+}
+
+.gsc-comment-box-tabs > div:first-child > button.color-bg-canvas {
+  background: var(--color-btn-selected-bg) !important;
+  color: var(--color-fg-default) !important;
+}
+
+.gsc-comment-box-main {
+  padding: 8px 10px;
+}
+
+.gsc-comment-box-textarea {
+  border-radius: 12px 12px 0 0 !important;
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.gsc-comment-box-textarea:focus {
+  border-color: var(--color-accent-muted) !important;
+  box-shadow: 0 0 0 3px var(--color-accent-subtle) !important;
+  outline: none;
+}
+
+.gsc-comment-box-textarea-extras {
+  border-radius: 0 0 12px 12px !important;
+}
+
+.gsc-comment-box-bottom {
+  padding: 0 10px 10px;
+}
+
+.btn {
+  border-radius: 999px !important;
+  font-weight: 700;
+}
+
+.btn-primary {
+  padding-inline: 16px;
+}
+
+/* Timeline: rounded comment cards and readable body text. */
+.gsc-timeline .rounded-md,
+.gsc-reply-box,
+.gsc-replies {
+  border-radius: 14px !important;
+}
+
+.gsc-comment-author-avatar img {
+  border-radius: 50%;
+}
+
+.gsc-comment-content {
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.markdown a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
