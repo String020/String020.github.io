@@ -1172,7 +1172,10 @@ const topTags = Array.from(tagCounts.entries())
 
         const tab = event.target.closest("[data-page]");
         if (tab) {
-          setActivePage(tab.dataset.page, null);
+          // Tabs update the address too, so a reload or shared link reopens the same section.
+          const tabPanel = panels[Number(tab.dataset.page)];
+          const isAlreadyOpen = tabPanel?.classList.contains("is-current");
+          setActivePage(tab.dataset.page, isAlreadyOpen ? null : tabPanel?.dataset.route ?? null);
           revealStage();
           return;
         }
