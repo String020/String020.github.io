@@ -153,7 +153,7 @@ export const site = {
     eyebrow: "Lab",
     title: "Future 3x3 widget space.",
     description: "The dot-grid icon opens a compact menu for future widgets, experiments, and small tools.",
-    items: ["Widget dock", "Mini apps", "Layout presets", "Theme switcher", "Music widget", "Guestbook later"],
+    items: ["Widget dock", "Mini apps", "Layout presets", "Music widget", "Guestbook later"],
   },
   featurePages: [
     {

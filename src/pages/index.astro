@@ -36,11 +36,6 @@ const tabIndexByNavigationId = new Map(navigation.map((item, index) => [item.id,
 const editorScriptUrl = withBase("assets/portal-editor.js");
 const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL || "";
 const serializedPortalContent = JSON.stringify(portalContent).replace(/</g, "\\u003c");
-const themeOptions = [
-  { value: "system", label: "跟随系统" },
-  { value: "light", label: "浅色" },
-  { value: "dark", label: "深色" },
-];
 const statCounts: Record<string, number> = {
   "Main sections": navigation.length,
   "Blog posts": blogPosts.length,
@@ -163,17 +158,7 @@ const topTags = Array.from(tagCounts.entries())
                         <span aria-hidden="true">‹</span>
                         <strong>{item}</strong>
                       </button>
-                      {item === "Theme switcher" ? (
-                        <div class="lab-theme-options" role="group" aria-label="Color theme">
-                          {themeOptions.map((option) => (
-                            <button class="lab-theme-option" type="button" data-theme-option={option.value} aria-pressed="false">
-                              {option.label}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <p>等待开发</p>
-                      )}
+                      <p>等待开发</p>
                     </div>
                   </li>
                 ))
@@ -191,6 +176,17 @@ const topTags = Array.from(tagCounts.entries())
         <a class="tool-button" href={withBase("about/")} aria-label="Open profile">
           <span>{site.brand.initials}</span>
         </a>
+        <button class="theme-toggle" type="button" role="switch" aria-checked="false" aria-label="Dark mode" data-theme-toggle>
+          <span class="theme-toggle-knob" aria-hidden="true">
+            <svg class="theme-toggle-sun" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4"></circle>
+              <path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path>
+            </svg>
+            <svg class="theme-toggle-moon" viewBox="0 0 24 24">
+              <path d="M19.5 14.6A7.8 7.8 0 0 1 9.4 4.5a7.8 7.8 0 1 0 10.1 10.1Z"></path>
+            </svg>
+          </span>
+        </button>
       </div>
     </header>
 
@@ -870,20 +866,17 @@ const topTags = Array.from(tagCounts.entries())
         });
       });
 
-      const themeOptionButtons = Array.from(document.querySelectorAll("[data-theme-option]"));
+      const themeToggle = document.querySelector("[data-theme-toggle]");
 
-      function syncThemeOptions() {
-        const preference = document.documentElement.dataset.themePreference || "system";
-        themeOptionButtons.forEach((button) => {
-          button.setAttribute("aria-pressed", String(button.dataset.themeOption === preference));
-        });
+      function syncThemeToggle() {
+        themeToggle?.setAttribute("aria-checked", String(document.documentElement.dataset.theme === "dark"));
       }
 
-      themeOptionButtons.forEach((button) => {
-        button.addEventListener("click", () => window.portalTheme?.set(button.dataset.themeOption));
+      themeToggle?.addEventListener("click", () => {
+        window.portalTheme?.set(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
       });
-      window.addEventListener("portal-themechange", syncThemeOptions);
-      syncThemeOptions();
+      window.addEventListener("portal-themechange", syncThemeToggle);
+      syncThemeToggle();
 
       document.addEventListener("click", (event) => {
         if (labMenu && !labMenu.contains(event.target)) {

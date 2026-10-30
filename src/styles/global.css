@@ -112,7 +112,7 @@ a {
   box-shadow: none;
   display: grid;
   gap: 14px;
-  grid-template-columns: 170px minmax(0, 1fr) 312px;
+  grid-template-columns: 170px minmax(0, 1fr) 330px;
   left: 50%;
   max-width: 1260px;
   min-height: 64px;
@@ -262,6 +262,67 @@ a {
   margin-left: 2px;
   min-height: 36px;
   width: 36px;
+}
+
+.theme-toggle {
+  align-items: center;
+  background: rgba(var(--ink-rgb), 0.07);
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  flex: 0 0 auto;
+  height: 30px;
+  padding: 3px;
+  transition: background 200ms ease;
+  width: 52px;
+}
+
+.theme-toggle:hover,
+.theme-toggle:focus-visible {
+  background: rgba(var(--ink-rgb), 0.12);
+}
+
+.theme-toggle-knob {
+  align-items: center;
+  background: var(--paper);
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(20, 20, 20, 0.2);
+  color: var(--ink);
+  display: inline-flex;
+  height: 24px;
+  justify-content: center;
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+  width: 24px;
+}
+
+.theme-toggle-knob svg {
+  fill: none;
+  height: 15px;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+  width: 15px;
+}
+
+.theme-toggle-moon {
+  display: none;
+}
+
+/* Driven by the root theme attribute so the knob is in place on first paint. */
+:root[data-theme="dark"] .theme-toggle-knob {
+  background: var(--ink);
+  color: var(--paper);
+  transform: translateX(22px);
+}
+
+:root[data-theme="dark"] .theme-toggle-sun {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle-moon {
+  display: block;
 }
 
 .dot-grid {
@@ -463,45 +524,6 @@ a {
   font-size: 0.72rem;
   margin: 7px 8px 4px;
   padding: 4px 0 4px 12px;
-}
-
-.lab-theme-options {
-  border-left: 1px solid rgba(var(--ink-rgb), 0.14);
-  display: grid;
-  gap: 2px;
-  margin: 7px 8px 4px;
-  padding-left: 8px;
-}
-
-.lab-theme-option {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: 9px;
-  color: var(--ink-soft);
-  cursor: pointer;
-  display: flex;
-  font-size: 0.76rem;
-  font-weight: 700;
-  justify-content: space-between;
-  min-height: 32px;
-  padding: 0 10px;
-  text-align: left;
-}
-
-.lab-theme-option:hover,
-.lab-theme-option:focus-visible {
-  background: rgba(var(--ink-rgb), 0.06);
-  color: var(--ink);
-}
-
-.lab-theme-option[aria-pressed="true"] {
-  background: rgba(var(--ink-rgb), 0.09);
-  color: var(--ink);
-}
-
-.lab-theme-option[aria-pressed="true"]::after {
-  content: "✓";
 }
 
 @media (max-width: 1100px) {
@@ -1388,7 +1410,7 @@ a {
     display: flex;
   }
 
-  .header-actions > :not(.lab-menu):not(.search-pill) {
+  .header-actions > :not(.lab-menu):not(.search-pill):not(.theme-toggle) {
     display: none;
   }
 
@@ -1430,7 +1452,7 @@ a {
   }
 
   .portal-brand {
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .header-actions {
@@ -1601,7 +1623,8 @@ a {
   .tab::after,
   .lab-menu-panel,
   .lab-tree-branch,
-  .lab-tree-chevron {
+  .lab-tree-chevron,
+  .theme-toggle-knob {
     animation: none;
     transition: none;
   }
