@@ -39,6 +39,8 @@ type Props = {
   lang?: string;
   /** Post whose body is passed in the "article" slot and rendered on the server. */
   articleId?: string;
+  /** Renders the 404 panel, which opens for any address without a portal route. */
+  notFound?: boolean;
 };
 
 const {
@@ -50,6 +52,7 @@ const {
   publishedTime,
   lang = "zh-CN",
   articleId,
+  notFound = false,
 } = Astro.props;
 const articleHtml = articleId && Astro.slots.has("article") ? await Astro.slots.render("article") : "";
 
@@ -72,7 +75,7 @@ const tagHref = (tag: string) =>
     Projects: "projects/",
     Study: "blog/tag/notes/",
   })[tag] ?? `search/?q=${encodeURIComponent(tag)}`;
-const canonicalUrl = Astro.site ? new URL(Astro.url.pathname, Astro.site) : null;
+const canonicalUrl = Astro.site && !notFound ? new URL(Astro.url.pathname, Astro.site) : null;
 const pageTitle = title ? `${title} | ${site.brand.name}` : site.title;
 const shareImage = image ? new URL(image, Astro.site ?? Astro.url) : null;
 const navigation = portalContent.navigation;
@@ -91,8 +94,12 @@ const panelOrder = [
   ...blogPosts.map((post) => ({ route: `blog/${post.id}/`, tab: blogTabIndex })),
   { route: "search/", tab: undefined },
 ];
+// The 404 panel has no route of its own; it is keyed internally so it can be opened on load.
+const notFoundKey = "#not-found";
+if (notFound) panelOrder.push({ route: notFoundKey, tab: undefined });
+const activeRoute = notFound ? notFoundKey : route;
 const pageCount = panelOrder.length;
-const initialIndex = Math.max(0, panelOrder.findIndex((panel) => panel.route === route));
+const initialIndex = Math.max(0, panelOrder.findIndex((panel) => panel.route === activeRoute));
 const initialTab = panelOrder[initialIndex].tab;
 const panelState = (panelRoute: string) => {
   const isCurrent = panelOrder[initialIndex].route === panelRoute;
@@ -135,9 +142,10 @@ const topTags = Array.from(tagCounts.entries())
     {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
     {shareImage && <meta property="og:image" content={shareImage} />}
     {publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
+    {notFound && <meta name="robots" content="noindex" />}
     <title>{pageTitle}</title>
   </head>
-  <body style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-editor-src={editorScriptUrl}>
+  <body style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-editor-src={editorScriptUrl} data-initial-panel={notFound ? "not-found" : undefined}>
     <div class="backdrop" aria-hidden="true"></div>
     <div class="soft-wash" aria-hidden="true"></div>
 
@@ -580,6 +588,29 @@ const topTags = Array.from(tagCounts.entries())
             <input class="search-box portal-search-box" id="portal-search-box" type="search" placeholder="Type keywords..." autocomplete="off" />
             <section class="search-results" id="portal-search-results" aria-live="polite"></section>
           </article>
+
+          {notFound && (
+            <article
+              class={`page detail-page not-found-page ${panelState(notFoundKey).class}`}
+              inert={panelState(notFoundKey).inert}
+              data-panel="not-found"
+            >
+              <div class="page-heading">
+                <p>404</p>
+                <h2>Page not found.</h2>
+              </div>
+              <p class="page-intro">This page doesn't exist. It may have moved, or the address may have a typo.</p>
+              <p class="not-found-path" data-missing-path hidden></p>
+              <form class="not-found-search" action={withBase("search/")} method="get" role="search" data-not-found-search>
+                <input class="search-box" type="search" name="q" placeholder="Search posts…" aria-label="Search posts" />
+              </form>
+              <nav class="blog-tools" aria-label="Where to go next">
+                <a class="tool-link" href={withBase()}>Dashboard</a>
+                <a class="tool-link" href={withBase("blog/")}>Blog</a>
+                <a class="tool-link" href={withBase("search/")}>Search</a>
+              </nav>
+            </article>
+          )}
         </div>
       </section>
     </main>
@@ -1035,6 +1066,15 @@ const topTags = Array.from(tagCounts.entries())
         return true;
       }
 
+      // Opens the panel for the current address. Addresses without a portal route only reach the
+      // portal through the 404 page, which opens its own panel instead of the dashboard.
+      function openLocation() {
+        const route = normalizeRoute(window.location.href);
+        if (route && openRoute(route, false)) return;
+        const fallbackPanel = document.body.dataset.initialPanel;
+        if (!(route && fallbackPanel && openPanel(fallbackPanel))) setActivePage(0);
+      }
+
       function openRoute(route, push = true, hint = null) {
         const [cleanRoute, query = ""] = route.split("?");
         const panelName = routeMap.get(cleanRoute);
@@ -1216,12 +1256,7 @@ const topTags = Array.from(tagCounts.entries())
         }
       });
 
-      window.addEventListener("popstate", () => {
-        const route = normalizeRoute(window.location.href);
-        if (!route || !openRoute(route, false)) {
-          setActivePage(0);
-        }
-      });
+      window.addEventListener("popstate", openLocation);
 
       const searchRoot = document.querySelector("[data-search-root]");
       const searchInput = document.getElementById("portal-search-box");
@@ -1322,9 +1357,18 @@ const topTags = Array.from(tagCounts.entries())
         window.history.replaceState(window.history.state, "", url);
       });
 
+      const missingPath = document.querySelector("[data-missing-path]");
+      if (missingPath) {
+        missingPath.textContent = decodeURIComponent(window.location.pathname);
+        missingPath.hidden = false;
+      }
+      document.querySelector("[data-not-found-search]")?.addEventListener("submit", (event) => {
+        const query = new FormData(event.currentTarget).get("q")?.toString().trim() || "";
+        if (openRoute(query ? `search/?q=${encodeURIComponent(query)}` : "search/")) event.preventDefault();
+      });
+
       // Open the panel for the URL this page was served at; the server already rendered it as current.
-      const initialRoute = normalizeRoute(window.location.href);
-      if (!initialRoute || !openRoute(initialRoute, false)) setActivePage(0);
+      openLocation();
       document.querySelectorAll(".article-panel").forEach(enhanceArticle);
       // Anchor jumps can scroll the clipped stage sideways; keep it aligned with the track.
       stage.scrollLeft = 0;
