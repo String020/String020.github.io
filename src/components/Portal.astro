@@ -542,13 +542,13 @@ const topTags = Array.from(tagCounts.entries())
                       )}
                       <nav class="post-nav" aria-label="Post navigation">
                         {previous ? (
-                          <a href={withBase(`blog/${previous.id}/`)}>
+                          <a href={withBase(`blog/${previous.id}/`)} data-portal-direction="back">
                             <span>Previous</span>
                             <strong>{previous.data.title}</strong>
                           </a>
                         ) : <span></span>}
                         {next ? (
-                          <a href={withBase(`blog/${next.id}/`)}>
+                          <a href={withBase(`blog/${next.id}/`)} data-portal-direction="forward">
                             <span>Next</span>
                             <strong>{next.data.title}</strong>
                           </a>
@@ -964,11 +964,45 @@ const topTags = Array.from(tagCounts.entries())
         window.scrollTo({ top: window.scrollY + top - offset, behavior: reduceMotion ? "auto" : "smooth" });
       }
 
-      function setActivePage(index, pushRoute = null) {
+      const panelDirections = { back: -1, forward: 1 };
+
+      // Top-level panels (dashboard, BLOG and navigation sections) sit above detail panels.
+      const panelDepth = (panel) => (panel.classList.contains("detail-page") ? 1 : 0);
+      const panelTab = (panel) => (panel.dataset.tab !== undefined ? Number(panel.dataset.tab) : 0);
+
+      // -1 enters from the left (going back), 1 from the right (going deeper or forward), 0 just fades.
+      function transitionDirection(fromPanel, toPanel, hint) {
+        if (hint in panelDirections) return panelDirections[hint];
+        if (!fromPanel || !toPanel) return 0;
+        const fromDepth = panelDepth(fromPanel);
+        const toDepth = panelDepth(toPanel);
+        if (fromDepth !== toDepth) return toDepth > fromDepth ? 1 : -1;
+        if (toDepth === 0) return Math.sign(panelTab(toPanel) - panelTab(fromPanel));
+        return 0;
+      }
+
+      // The track jumps straight to the new panel; only the incoming panel eases in, so switching
+      // between distant panels never sweeps the whole track past the viewer.
+      function animatePanelIn(panel, direction) {
+        if (reduceMotion || !panel.animate) return;
+        panel.animate(
+          [
+            { opacity: 0, transform: `translateX(${direction * 28}px)` },
+            { opacity: 1, transform: "translateX(0)" },
+          ],
+          { duration: 300, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+        );
+      }
+
+      function setActivePage(index, pushRoute = null, hint = null) {
         const pageIndex = Number(index);
+        const previousPanel = panels.find((panel) => panel.classList.contains("is-current"));
         track.style.transform = `translateX(calc(-${pageIndex} * 100% / ${pageCount}))`;
 
         const activePanel = panels[pageIndex];
+        if (activePanel && previousPanel && activePanel !== previousPanel) {
+          animatePanelIn(activePanel, transitionDirection(previousPanel, activePanel, hint));
+        }
         loadArticleBody(activePanel);
         window.portalComments?.mount(activePanel?.querySelector("[data-comments]"));
         const activeTab = activePanel?.dataset.tab ? Number(activePanel.dataset.tab) : pageIndex;
@@ -994,19 +1028,19 @@ const topTags = Array.from(tagCounts.entries())
         }
       }
 
-      function openPanel(panelName, pushRoute = null) {
+      function openPanel(panelName, pushRoute = null, hint = null) {
         const panel = panels.find((item) => item.dataset.panel === panelName);
         if (!panel) return false;
-        setActivePage(Number(panel.dataset.panelIndex), pushRoute);
+        setActivePage(Number(panel.dataset.panelIndex), pushRoute, hint);
         return true;
       }
 
-      function openRoute(route, push = true) {
+      function openRoute(route, push = true, hint = null) {
         const [cleanRoute, query = ""] = route.split("?");
         const panelName = routeMap.get(cleanRoute);
         if (!panelName) return false;
         const isSearch = panelName === "search";
-        openPanel(panelName, push ? (isSearch ? route : cleanRoute) : null);
+        openPanel(panelName, push ? (isSearch ? route : cleanRoute) : null, hint);
         if (isSearch) setSearchQuery(new URLSearchParams(query).get("q") || "");
         return true;
       }
@@ -1160,7 +1194,7 @@ const topTags = Array.from(tagCounts.entries())
 
         const route = link.dataset.portalRoute ?? normalizeRoute(link.href);
         if (route === null) return;
-        if (openRoute(route)) {
+        if (openRoute(route, true, link.dataset.portalDirection)) {
           event.preventDefault();
           setLabMenuOpen(false);
           revealStage();
