@@ -1,7 +1,6 @@
 .blog-tools,
 .taxonomy-cloud,
-.article-meta,
-.article-links {
+.article-meta {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -103,11 +102,6 @@
   font-size: 0.72rem;
   font-weight: 760;
   padding: 6px 9px;
-}
-
-.article-shell.wide {
-  max-width: 1080px;
-  width: min(calc(100% - 32px), 1080px);
 }
 
 .article-layout {
