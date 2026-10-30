@@ -24,9 +24,12 @@ http://localhost:4321
 ## Build
 
 ```bash
+pnpm check
 pnpm build
 pnpm preview
 ```
+
+`pnpm check` runs `astro check` (type and template diagnostics). The GitHub Pages workflow runs it before every build, so a type error stops the deploy.
 
 ## Structure
 

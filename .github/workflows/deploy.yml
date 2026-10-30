@@ -29,11 +29,12 @@ jobs:
             echo "BASE_PATH=/${{ github.event.repository.name }}" >> "$GITHUB_ENV"
           fi
 
-      - name: Install, build, and upload site
+      - name: Install, type-check, build, and upload site
         uses: withastro/action@v6
         with:
           node-version: 24
-          package-manager: pnpm@latest
+          # pnpm's version comes from the packageManager field in package.json.
+          build-cmd: pnpm run check && pnpm run build
 
   deploy:
     needs: build
