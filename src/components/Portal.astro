@@ -107,7 +107,9 @@ const panelState = (panelRoute: string) => {
 };
 const editorScriptUrl = withBase("assets/portal-editor.js");
 const adminApiUrl = import.meta.env.PUBLIC_ADMIN_API_URL || "";
-const serializedPortalContent = JSON.stringify(portalContent).replace(/</g, "\\u003c");
+// Post bodies stay out of every page; the editor fetches the full content from portal-content.json.
+const { posts: _editorPosts, ...portalContentWithoutPosts } = portalContent;
+const serializedPortalContent = JSON.stringify(portalContentWithoutPosts).replace(/</g, "\\u003c");
 const statCounts: Record<string, number> = {
   "Main sections": navigation.length,
   "Blog posts": blogPosts.length,
@@ -404,6 +406,13 @@ const topTags = Array.from(tagCounts.entries())
               </section>
             )}
 
+            {blogPosts.length === 0 && (
+              <div class="managed-empty">
+                <strong>No posts yet.</strong>
+                <span>New posts are on the way.</span>
+              </div>
+            )}
+
             <section class="blog-list" aria-label="Blog posts">
               {
                 blogPosts.map((post) => {
@@ -632,6 +641,7 @@ const topTags = Array.from(tagCounts.entries())
       <div class="editor-toolbar-actions">
         <button type="button" class="editor-button" data-add-navigation>Add navigation</button>
         <button type="button" class="editor-button" data-add-card>Add block</button>
+        <button type="button" class="editor-button" data-open-posts>Posts</button>
         <button type="button" class="editor-button" data-preview-draft>Preview</button>
         <button type="button" class="editor-button" data-release-history>Releases</button>
         <button type="button" class="editor-button editor-button--primary" data-publish-draft>Publish</button>
@@ -801,6 +811,111 @@ const topTags = Array.from(tagCounts.entries())
         </footer>
       </section>
     </dialog>
+
+    <dialog class="editor-dialog" data-posts-dialog>
+      <section class="editor-form">
+        <header>
+          <div>
+            <small>Blog</small>
+            <h2>Posts</h2>
+          </div>
+          <button type="button" class="editor-icon-button" data-close-dialog aria-label="Close">×</button>
+        </header>
+        <p class="editor-dialog-note">Posts are saved with the draft and go live when you publish.</p>
+        <div class="editor-post-list" data-post-list aria-live="polite"></div>
+        <footer>
+          <button type="button" class="editor-button" data-close-dialog>Close</button>
+          <button type="button" class="editor-button editor-button--primary" data-new-post>New post</button>
+        </footer>
+      </section>
+    </dialog>
+
+    <section class="page-editor post-editor" data-post-editor hidden aria-label="Post editor">
+      <header class="page-editor-header">
+        <button type="button" class="editor-button" data-close-post-editor>← Posts</button>
+        <div>
+          <small>Post editor</small>
+          <strong data-post-editor-title>Untitled post</strong>
+        </div>
+        <div class="page-editor-header-actions">
+          <button type="button" class="editor-button post-editor-preview-toggle" data-post-preview-toggle>Preview</button>
+          <button type="button" class="editor-button editor-button--primary" data-close-post-editor>Done</button>
+        </div>
+      </header>
+      <div class="post-editor-layout">
+        <form class="editor-form post-editor-form" data-post-form autocomplete="off">
+          <div class="post-editor-fields">
+            <label class="post-field--wide">
+              Title
+              <input name="title" maxlength="120" required placeholder="Post title" />
+            </label>
+            <label class="post-field--wide">
+              Address
+              <span class="editor-input-prefix">/blog/ <input name="slug" maxlength="80" required placeholder="my-post" /> /</span>
+            </label>
+            <label class="post-field--wide">
+              Description <small>(shown in lists and search)</small>
+              <textarea name="description" maxlength="300" rows="2" placeholder="One or two sentences about the post."></textarea>
+            </label>
+            <label>
+              Date
+              <input name="date" type="date" required />
+            </label>
+            <label>
+              Updated <small>(optional)</small>
+              <input name="updated" type="date" />
+            </label>
+            <label>
+              Category
+              <input name="category" maxlength="40" placeholder="General" />
+            </label>
+            <label>
+              Series <small>(optional)</small>
+              <input name="series" maxlength="60" placeholder="Astro Website Log" />
+            </label>
+            <label class="post-field--wide">
+              Tags <small>(separate with commas)</small>
+              <input name="tags" placeholder="astro, notes" />
+            </label>
+            <div class="post-field--wide post-cover-field">
+              <label>
+                Cover image <small>(optional)</small>
+                <input name="image" placeholder="https://… or upload" />
+              </label>
+              <label class="editor-button post-upload-button">
+                Upload
+                <input type="file" accept="image/jpeg,image/png,image/webp" data-post-cover-upload hidden />
+              </label>
+            </div>
+            <div class="post-field--wide post-editor-toggles">
+              <label class="editor-check"><input type="checkbox" name="visible" /> Show on the site</label>
+              <label class="editor-check"><input type="checkbox" name="pinned" /> Pinned</label>
+              <label class="editor-check"><input type="checkbox" name="comment" /> Comments</label>
+            </div>
+          </div>
+          <div class="post-markdown">
+            <div class="post-markdown-toolbar" role="toolbar" aria-label="Formatting">
+              <button type="button" data-markdown="h2" aria-label="Heading 2">H2</button>
+              <button type="button" data-markdown="h3" aria-label="Heading 3">H3</button>
+              <button type="button" data-markdown="bold" aria-label="Bold"><strong>B</strong></button>
+              <button type="button" data-markdown="italic" aria-label="Italic"><em>I</em></button>
+              <button type="button" data-markdown="link">Link</button>
+              <button type="button" data-markdown="quote">Quote</button>
+              <button type="button" data-markdown="list">List</button>
+              <button type="button" data-markdown="code">Code</button>
+              <button type="button" data-markdown="tip">Tip</button>
+              <label class="post-markdown-image">
+                Image
+                <input type="file" accept="image/jpeg,image/png,image/webp" data-post-image-upload hidden />
+              </label>
+            </div>
+            <textarea name="body" class="post-markdown-input" spellcheck="true" placeholder="Write in Markdown…"></textarea>
+            <small class="post-markdown-hint">Markdown supported. Paste an image to upload it.</small>
+          </div>
+        </form>
+        <aside class="page-editor-preview post-editor-preview" data-post-preview aria-label="Post preview"></aside>
+      </div>
+    </section>
 
     <section class="page-editor" data-page-editor hidden aria-label="Page content editor">
       <header class="page-editor-header">

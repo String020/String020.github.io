@@ -59,15 +59,52 @@ export type ManagedPage = {
   content: RichBlock[];
 };
 
+/** A blog post written in the online editor; published posts are merged into the blog collection. */
+export type EditorPost = {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  date: string;
+  updated?: string | null;
+  category: string;
+  tags: string[];
+  series?: string;
+  lang?: string;
+  pinned: boolean;
+  draft: boolean;
+  comment: boolean;
+  image?: string | null;
+  /** Markdown; uploaded images appear as `asset://<id>` and resolve through `assets`. */
+  body: string;
+  /** Maps asset ids to `asset://<id>` in drafts, replaced with public URLs when published. */
+  assets?: Record<string, string>;
+};
+
 export type PortalContent = {
   schemaVersion: number;
   publishedAt: string;
   navigation: NavigationSection[];
   pages: ManagedPage[];
   redirects: Array<{ from: string; to: string }>;
+  posts?: EditorPost[];
 };
 
 export const portalContent = portalContentData as PortalContent;
+
+export const editorPosts = portalContent.posts ?? [];
+
+const isPublicUrl = (value: string | null | undefined) => /^(https?:)?\/\//.test(value ?? "") || (value ?? "").startsWith("/");
+
+/** Swaps `asset://<id>` image references in a post body for their published URLs. */
+export const resolveEditorPostBody = (post: EditorPost) =>
+  post.body.replace(/asset:\/\/([a-f0-9-]{36})/g, (reference, id: string) => {
+    const url = post.assets?.[id];
+    return url && isPublicUrl(url) ? url : reference;
+  });
+
+/** The cover image, or undefined while it still points at an unpublished upload. */
+export const resolveEditorPostImage = (post: EditorPost) => (post.image && isPublicUrl(post.image) ? post.image : undefined);
 
 export const managedNavigation = portalContent.navigation.filter(
   (item) => item.kind === "managed",

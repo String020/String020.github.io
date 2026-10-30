@@ -22,6 +22,12 @@ if (contentNode) {
   const toast = document.querySelector("[data-editor-toast]");
   const slideTrack = document.querySelector("[data-track]");
   const tabsContainer = document.querySelector(".tabs");
+  const postsDialog = document.querySelector("[data-posts-dialog]");
+  const postList = document.querySelector("[data-post-list]");
+  const postEditor = document.querySelector("[data-post-editor]");
+  const postForm = document.querySelector("[data-post-form]");
+  const postPreview = document.querySelector("[data-post-preview]");
+  const postEditorTitle = document.querySelector("[data-post-editor-title]");
 
   const state = {
     content: structuredClone(publishedContent),
@@ -33,6 +39,8 @@ if (contentNode) {
     isPublishing: false,
     activeNavigationId: "string",
     activePageId: null,
+    activePostId: null,
+    publishedPostSlugs: new Set(),
     pendingDelete: null,
     draggedNavigationId: null,
     draggedCard: null,
@@ -391,17 +399,34 @@ if (contentNode) {
     return response;
   }
 
+  // Pages embed the content without post bodies, so the editor starts from the full published file.
+  async function fetchPublishedContent() {
+    try {
+      const response = await fetch(`${basePath}portal-content.json`, { cache: "no-store" });
+      if (response.ok) return await response.json();
+    } catch {}
+    return clone(publishedContent);
+  }
+
+  // Drafts saved before posts existed have no posts list; keep the published posts instead of dropping them.
+  function adoptPublishedPosts(published) {
+    if (!Array.isArray(state.content.posts)) state.content.posts = clone(published.posts || []);
+    state.publishedPostSlugs = new Set((published.posts || []).map((post) => post.slug));
+  }
+
   async function loadDraft() {
     setStatus("Loading draft…");
+    const published = await fetchPublishedContent();
     if (localAdmin) {
       const saved = localStorage.getItem("portal-local-draft");
       if (saved) {
         const parsed = JSON.parse(saved);
-        state.content = parsed.content || clone(publishedContent);
+        state.content = parsed.content || clone(published);
         state.revision = Number(parsed.revision || 0);
       } else {
-        state.content = clone(publishedContent);
+        state.content = clone(published);
       }
+      adoptPublishedPosts(published);
       state.lastSaved = JSON.stringify(state.content);
       setStatus("Local draft loaded");
       return;
@@ -409,8 +434,9 @@ if (contentNode) {
     if (!apiBase || !state.token) throw new Error("Admin API is not configured.");
     const response = await apiFetch("/v1/draft");
     if (response.status === 404) {
-      state.content = clone(publishedContent);
+      state.content = clone(published);
       state.revision = 0;
+      adoptPublishedPosts(published);
       state.lastSaved = JSON.stringify(state.content);
       setStatus("Published version loaded");
       return;
@@ -420,6 +446,7 @@ if (contentNode) {
     state.content = data.content;
     state.revision = Number(data.revision || 0);
     state.assetPreviews = new Map(Object.entries(data.assetPreviews || {}));
+    adoptPublishedPosts(published);
     state.lastSaved = JSON.stringify(state.content);
     setStatus("Cloud draft loaded");
   }
@@ -777,6 +804,290 @@ if (contentNode) {
     renderPageEditor();
   }
 
+  const ensurePosts = () => (state.content.posts ||= []);
+  const findPost = (id) => ensurePosts().find((post) => post.id === id);
+  // Routes that already live under /blog/ and can't be used as post addresses.
+  const reservedBlogRoutes = new Set(["archive", "tag", "category", "series", "writing-guide"]);
+  const postSlug = (value) => String(value || "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  const splitTags = (value) => Array.from(new Set(String(value || "").split(/[,，]/).map((tag) => tag.trim()).filter(Boolean)));
+
+  function today() {
+    const now = new Date();
+    return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+  }
+
+  // Posts written as Markdown files appear on the page but not in the editor's posts list.
+  function markdownPostSlugs() {
+    return Array.from(document.querySelectorAll('[data-panel^="post-"]'))
+      .map((panel) => panel.dataset.panel.slice(5))
+      .filter((slug) => !state.publishedPostSlugs.has(slug));
+  }
+
+  function uniquePostSlug(source, currentId = null) {
+    const base = postSlug(source) || `post-${today().replaceAll("-", "")}`;
+    const taken = new Set([...reservedBlogRoutes, ...markdownPostSlugs()]);
+    ensurePosts().forEach((post) => { if (post.id !== currentId) taken.add(post.slug); });
+    let slug = base;
+    let suffix = 2;
+    while (taken.has(slug)) slug = `${base}-${suffix++}`;
+    return slug;
+  }
+
+  function renderPostList() {
+    if (!postList) return;
+    const posts = [...ensurePosts()].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+    if (!posts.length) {
+      postList.replaceChildren(element("div", { className: "managed-empty" }, [
+        element("strong", { text: "No posts yet." }),
+        element("span", { text: "Create your first post to start the blog." }),
+      ]));
+      return;
+    }
+    postList.replaceChildren(...posts.map((post) => element("article", { className: "editor-post-item" }, [
+      element("div", {}, [
+        element("strong", { text: post.title || "Untitled post" }),
+        element("small", {}, [
+          `${post.date || "No date"} · /blog/${post.slug}/`,
+          post.draft ? element("span", { className: "editor-post-chip", text: "Hidden" }) : null,
+          post.pinned ? element("span", { className: "editor-post-chip", text: "Pinned" }) : null,
+        ]),
+      ]),
+      element("div", {}, [
+        button("Edit", "edit-post", { className: "editor-button", attrs: { "data-post-id": post.id } }),
+        button("Delete", "delete-post", { className: "editor-button", attrs: { "data-post-id": post.id } }),
+      ]),
+    ])));
+  }
+
+  function openPostsDialog() {
+    if (!postsDialog) return;
+    renderPostList();
+    if (!postsDialog.open) postsDialog.showModal();
+  }
+
+  function createPost() {
+    const date = today();
+    const post = {
+      id: makeId("post"),
+      slug: uniquePostSlug(`post-${date.replaceAll("-", "")}`),
+      title: "",
+      description: "",
+      date,
+      updated: null,
+      category: "General",
+      tags: [],
+      series: "",
+      lang: "zh-CN",
+      pinned: false,
+      // New posts stay hidden until switched on, so publishing other edits never ships a half-written post.
+      draft: true,
+      comment: true,
+      image: null,
+      body: "",
+      assets: {},
+    };
+    ensurePosts().push(post);
+    scheduleSave();
+    openPostEditor(post.id, { isNew: true });
+  }
+
+  function fillPostForm(post) {
+    const fields = postForm.elements;
+    fields.title.value = post.title || "";
+    fields.slug.value = post.slug || "";
+    fields.description.value = post.description || "";
+    fields.date.value = post.date || "";
+    fields.updated.value = post.updated || "";
+    fields.category.value = post.category || "";
+    fields.series.value = post.series || "";
+    fields.tags.value = (post.tags || []).join(", ");
+    fields.image.value = post.image || "";
+    fields.visible.checked = !post.draft;
+    fields.pinned.checked = Boolean(post.pinned);
+    fields.comment.checked = post.comment !== false;
+    fields.body.value = post.body || "";
+  }
+
+  function openPostEditor(postId, { isNew = false } = {}) {
+    const post = findPost(postId);
+    if (!post || !postEditor || !postForm) return;
+    state.activePostId = postId;
+    if (postsDialog?.open) postsDialog.close();
+    fillPostForm(post);
+    // Existing posts keep their address unless it is edited by hand.
+    postForm.dataset.slugEdited = String(!isNew);
+    postEditorTitle.textContent = post.title || "Untitled post";
+    postEditor.hidden = false;
+    body.style.overflow = "hidden";
+    renderPostPreview();
+    postForm.elements.title.focus();
+  }
+
+  function closePostEditor() {
+    const post = findPost(state.activePostId);
+    if (post) post.slug = uniquePostSlug(post.slug, post.id);
+    postEditor.hidden = true;
+    postEditor.classList.remove("is-previewing");
+    body.style.removeProperty("overflow");
+    state.activePostId = null;
+    scheduleSave();
+    openPostsDialog();
+  }
+
+  function updatePostField(post, input) {
+    const { name, value } = input;
+    if (name === "title") {
+      post.title = value.trim();
+      if (postForm.dataset.slugEdited !== "true" && postSlug(value)) {
+        post.slug = uniquePostSlug(value, post.id);
+        postForm.elements.slug.value = post.slug;
+      }
+    } else if (name === "slug") {
+      postForm.dataset.slugEdited = "true";
+      post.slug = postSlug(value) || post.slug;
+    } else if (name === "tags") post.tags = splitTags(value);
+    else if (name === "visible") post.draft = !input.checked;
+    else if (name === "pinned" || name === "comment") post[name] = input.checked;
+    else if (name === "image") post.image = value.trim().startsWith("asset://") ? value.trim() : safeLink(value) || null;
+    else if (name === "updated") post.updated = value || null;
+    else if (name === "body") {
+      post.body = value;
+      // Uploaded images removed from the text no longer need publishing.
+      post.assets = Object.fromEntries(Object.entries(post.assets || {}).filter(([id]) => value.includes(id)));
+    } else if (["description", "date", "category", "series"].includes(name)) post[name] = value.trim();
+  }
+
+  function insertMarkdown(kind) {
+    const input = postForm?.elements.body;
+    if (!input) return;
+    const { selectionStart: start, selectionEnd: end, value } = input;
+    const selected = value.slice(start, end);
+    const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+    const prefixes = { h2: "## ", h3: "### ", quote: "> ", list: "- ", tip: "> [!TIP]\n> " };
+    const wraps = {
+      bold: ["**", "**", "bold text"],
+      italic: ["*", "*", "italic text"],
+      link: ["[", "](https://)", "link text"],
+      code: ["\n```\n", "\n```\n", "code"],
+    };
+    input.focus();
+    if (prefixes[kind]) input.setRangeText(prefixes[kind], lineStart, lineStart, "end");
+    else if (wraps[kind]) {
+      const [before, after, placeholder] = wraps[kind];
+      const text = selected || placeholder;
+      input.setRangeText(`${before}${text}${after}`, start, end, "end");
+      input.setSelectionRange(start + before.length, start + before.length + text.length);
+    }
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  async function insertPostImage(file) {
+    const post = findPost(state.activePostId);
+    if (!post || !file) return;
+    try {
+      showToast("Uploading image…");
+      const uploaded = await uploadImage(file);
+      if (uploaded.src.startsWith("asset://")) {
+        const id = uploaded.src.slice(8);
+        post.assets = { ...(post.assets || {}), [id]: uploaded.src };
+      }
+      const input = postForm.elements.body;
+      const alt = file.name.replace(/\.[^.]+$/, "");
+      input.focus();
+      input.setRangeText(`\n![${alt}](${uploaded.src})\n`, input.selectionStart, input.selectionEnd, "end");
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      showToast("Image added.");
+    } catch (error) {
+      showToast(error.message || "Image upload failed.");
+    }
+  }
+
+  async function uploadPostCover(file) {
+    const post = findPost(state.activePostId);
+    if (!post || !file) return;
+    try {
+      const uploaded = await uploadImage(file);
+      post.image = uploaded.src;
+      postForm.elements.image.value = uploaded.src;
+      scheduleSave();
+      renderPostPreview();
+    } catch (error) {
+      showToast(error.message || "Image upload failed.");
+    }
+  }
+
+  let markedLoader = null;
+  let postPreviewTimer = 0;
+  // The Markdown renderer only loads for the administrator, when a post preview is first shown.
+  const loadMarked = () => (markedLoader ??= import("https://cdn.jsdelivr.net/npm/marked@18.0.14/lib/marked.esm.js")
+    .then((module) => module.marked)
+    .catch((error) => {
+      markedLoader = null;
+      throw error;
+    }));
+
+  function schedulePostPreview() {
+    window.clearTimeout(postPreviewTimer);
+    postPreviewTimer = window.setTimeout(renderPostPreview, 160);
+  }
+
+  const previewImageUrl = (post, src) => {
+    if (!String(src || "").startsWith("asset://")) return src;
+    const url = post.assets?.[src.slice(8)];
+    return state.assetPreviews.get(src) || (/^https?:/.test(url || "") ? url : "");
+  };
+
+  async function renderPostPreview() {
+    const post = findPost(state.activePostId);
+    if (!post || !postPreview) return;
+    const markdown = String(post.body || "").replace(/asset:\/\/[a-f0-9-]{36}/g, (src) => previewImageUrl(post, src) || src);
+    const bodyNode = element("div", { className: "article-body", attrs: { "data-state": "loaded" } });
+    try {
+      const marked = await loadMarked();
+      bodyNode.innerHTML = marked.parse(markdown, { gfm: true });
+    } catch {
+      bodyNode.append(
+        element("p", { className: "article-loading", text: "The preview renderer could not load. Your text is still saved." }),
+        element("pre", {}, element("code", { text: post.body })),
+      );
+    }
+    if (post.id !== state.activePostId) return;
+    const cover = previewImageUrl(post, post.image);
+    const header = element("header", { className: "article-header" }, [
+      cover ? element("img", { className: "article-cover", attrs: { src: cover, alt: "" } }) : null,
+      element("time", { text: post.date || "" }),
+      element("h1", { text: post.title || "Untitled post" }),
+      post.description ? element("p", { text: post.description }) : null,
+      element("div", { className: "article-meta" }, [
+        element("span", { className: "meta-pill", text: post.category || "General" }),
+        post.series ? element("span", { className: "meta-pill", text: post.series }) : null,
+        post.pinned ? element("span", { className: "meta-pill", text: "Pinned" }) : null,
+        post.draft ? element("span", { className: "meta-pill", text: "Hidden" }) : null,
+      ]),
+      post.tags?.length ? element("div", { className: "article-tags" }, post.tags.map((tag) => element("a", { text: `#${tag}` }))) : null,
+    ]);
+    postPreview.replaceChildren(element("div", { className: "article-card" }, [header, bodyNode]));
+    // Reuse the portal's article enhancements (callouts, copy buttons) so the preview matches the site.
+    window.enhanceArticle?.(postPreview);
+  }
+
+  function openDeletePost(postId) {
+    const post = findPost(postId);
+    if (!post) return;
+    state.pendingDelete = { kind: "post", postId };
+    deleteDialog.querySelector("[data-delete-title]").textContent = `Delete ${post.title || "Untitled post"}?`;
+    deleteDialog.querySelector("[data-delete-summary]").textContent = "The post will be permanently removed from the draft. It disappears from the site after you publish.";
+    renderDeleteImpact({ posts: 1, images: Object.keys(post.assets || {}).length + Number(Boolean(post.image)), urls: 1 });
+    deleteDialog.querySelector("[data-delete-confirm-field]").hidden = true;
+    deleteForm.elements.confirmation.value = "";
+    deleteDialog.showModal();
+  }
+
   async function publishDraft() {
     if (state.isPublishing) return;
     if (localAdmin || !apiBase) return showToast("Connect the Google Cloud admin API before publishing.", 4200);
@@ -962,6 +1273,14 @@ if (contentNode) {
     event.preventDefault();
     const pending = state.pendingDelete;
     if (!pending) return;
+    if (pending.kind === "post") {
+      state.content.posts = ensurePosts().filter((post) => post.id !== pending.postId);
+      state.pendingDelete = null;
+      deleteDialog.close();
+      scheduleSave();
+      renderPostList();
+      return;
+    }
     if (pending.kind === "navigation") {
       const navigation = findNavigation(pending.navigationId);
       if (!navigation || navigation.locked) return;
@@ -1008,6 +1327,8 @@ if (contentNode) {
     if (action === "delete-card") openDeleteCard(actionNode.dataset.navigationId, actionNode.dataset.cardId);
     if (action === "duplicate-card") duplicateCard(actionNode.dataset.navigationId, actionNode.dataset.cardId);
     if (action === "edit-page") openPageEditor(actionNode.dataset.pageId);
+    if (action === "edit-post") openPostEditor(actionNode.dataset.postId);
+    if (action === "delete-post") openDeletePost(actionNode.dataset.postId);
     if (["move-rich-up", "move-rich-down", "delete-rich-block"].includes(action)) {
       const page = findPage(state.activePageId);
       const index = page?.content.findIndex((block) => block.id === actionNode.dataset.blockId) ?? -1;
@@ -1165,6 +1486,46 @@ if (contentNode) {
     pageEditor.classList.toggle("is-previewing");
   });
   document.querySelectorAll("[data-add-rich-block]").forEach((node) => node.addEventListener("click", () => addRichBlock(node.dataset.addRichBlock)));
+
+  document.querySelector("[data-open-posts]")?.addEventListener("click", () => openPostsDialog());
+  document.querySelector("[data-new-post]")?.addEventListener("click", () => createPost());
+  document.querySelectorAll("[data-close-post-editor]").forEach((node) => node.addEventListener("click", closePostEditor));
+  document.querySelector("[data-post-preview-toggle]")?.addEventListener("click", () => {
+    postEditor.classList.toggle("is-previewing");
+    renderPostPreview();
+  });
+  postEditor?.querySelector(".post-markdown-toolbar")?.addEventListener("click", (event) => {
+    const tool = event.target.closest("[data-markdown]");
+    if (tool) insertMarkdown(tool.dataset.markdown);
+  });
+  postForm?.addEventListener("submit", (event) => event.preventDefault());
+  postForm?.addEventListener("input", (event) => {
+    const post = findPost(state.activePostId);
+    if (!post || !event.target.name || event.target.type === "file") return;
+    updatePostField(post, event.target);
+    postEditorTitle.textContent = post.title || "Untitled post";
+    scheduleSave();
+    schedulePostPreview();
+  });
+  postForm?.addEventListener("change", (event) => {
+    const post = findPost(state.activePostId);
+    if (!post) return;
+    if (event.target.name === "slug") {
+      post.slug = uniquePostSlug(post.slug, post.id);
+      event.target.value = post.slug;
+      scheduleSave();
+    }
+    const file = event.target.files?.[0];
+    if (file && event.target.matches("[data-post-image-upload]")) insertPostImage(file);
+    if (file && event.target.matches("[data-post-cover-upload]")) uploadPostCover(file);
+    if (event.target.type === "file") event.target.value = "";
+  });
+  postForm?.elements.body?.addEventListener("paste", (event) => {
+    const file = Array.from(event.clipboardData?.files || []).find((item) => item.type.startsWith("image/"));
+    if (!file) return;
+    event.preventDefault();
+    insertPostImage(file);
+  });
 
   async function initializeAdmin() {
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));

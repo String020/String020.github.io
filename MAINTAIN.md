@@ -19,7 +19,9 @@ Published editor content is stored in `src/data/portal-content.json`. Do not han
 
 ## Blog posts
 
-Blog management remains file-based in version 1. Create a Markdown file under `src/content/blog/`:
+Write posts in the editor: in edit mode, choose `Posts` in the toolbar, then `New post`. Posts use Markdown with a live preview, can include uploaded images, and are saved with the draft. New posts start hidden; switch on `Show on the site`, then `Publish`. Editor posts are stored in the `posts` list of `src/data/portal-content.json`.
+
+Markdown files still work too. Create a file under `src/content/blog/`:
 
 ```md
 ---
@@ -40,7 +42,7 @@ The file name becomes `/blog/<file-name>/`. Set `draft: true` to hide it.
 ## Files that remain code-managed
 
 - `src/data/site.ts`: profile, dashboard, blog panel, search, and lab text.
-- `src/content/blog/`: Markdown blog articles.
+- `src/content/blog/`: optional Markdown blog articles (posts written in the editor live in `portal-content.json`).
 - `src/styles/global.css`: visual design and editor styling.
 - `public/assets/portal-editor.js`: direct editor behavior.
 - `admin-api/`: private cloud administrator service.

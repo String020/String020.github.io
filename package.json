@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "astro dev",
     "check": "astro check",
-    "build": "astro build && pagefind --site dist --force-language zh-cn",
+    "build": "astro build && node scripts/build-search-index.mjs",
     "preview": "astro preview"
   },
   "dependencies": {

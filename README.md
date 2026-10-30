@@ -35,7 +35,7 @@ pnpm preview
 
 - `src/data/site.ts`: editable website text and links.
 - `src/data/portal-content.json`: published editable navigation, blocks, and rich pages.
-- `src/content/blog/`: Markdown blog posts.
+- `src/content/blog/`: optional Markdown blog posts; posts written in the online editor are stored in `src/data/portal-content.json` and merged by the loader in `src/content.config.ts`.
 - `src/pages/index.astro`: main portal page.
 - `src/pages/admin.astro`: hidden administrator sign-in entry.
 - `src/pages/blog/`: blog archive and article routes.
