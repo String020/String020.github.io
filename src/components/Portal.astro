@@ -525,10 +525,10 @@ const topTags = Array.from(tagCounts.entries())
                     <div class="article-card" data-pagefind-body={isServerRendered ? "" : undefined}>
                       <header class="article-header">
                         {cover && <img class="article-cover" src={cover} alt="" />}
-                        <time datetime={post.data.date.toISOString()}>{formatDate(post.data.date)}</time>
-                        <h1>{post.data.title}</h1>
+                        <time datetime={post.data.date.toISOString()} data-pagefind-ignore>{formatDate(post.data.date)}</time>
+                        <h1 data-pagefind-meta={isServerRendered ? "title" : undefined}>{post.data.title}</h1>
                         <p>{post.data.description}</p>
-                        <div class="article-meta">
+                        <div class="article-meta" data-pagefind-ignore>
                           <a
                             class="meta-pill"
                             href={withBase(`blog/category/${slugifyTaxonomy(category)}/`)}
@@ -543,7 +543,7 @@ const topTags = Array.from(tagCounts.entries())
                           {post.data.updated && <span class="meta-pill">Updated {formatDate(post.data.updated)}</span>}
                           {post.data.pinned && <span class="meta-pill">Pinned</span>}
                         </div>
-                        <div class="article-tags">
+                        <div class="article-tags" data-pagefind-ignore>
                           {post.data.tags.map((tag) => (
                             <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
                           ))}
