@@ -1381,7 +1381,7 @@ a {
 
 @media (max-width: 980px) {
   .portal-header {
-    grid-template-columns: 150px minmax(0, 1fr);
+    grid-template-columns: 150px minmax(0, 1fr) auto;
   }
 
   .header-actions {
