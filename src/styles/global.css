@@ -2067,6 +2067,11 @@ body.is-editing [data-managed-card] {
   grid-column: 1 / -1;
 }
 
+/* Keep side-by-side inputs level when only one label has an "(optional)" hint. */
+.post-editor-fields > label {
+  align-content: end;
+}
+
 .editor-form label small {
   color: var(--muted);
   font-weight: 600;
