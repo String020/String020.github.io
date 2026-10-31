@@ -6,6 +6,7 @@ import { backgroundStyle } from "../../lib/images";
 import ThemeInit from "../../components/ThemeInit.astro";
 import "../../styles/global.css";
 import "../../styles/blog-features.css";
+import "../../styles/string.css";
 
 const posts = sortPosts((await getCollection("blog")).filter(isPublished));
 const groups = groupPostsByYear(posts);
@@ -24,7 +25,7 @@ const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
     <meta name="description" content="Blog archive grouped by year." />
     <title>Archive | {site.brand.name}</title>
   </head>
-  <body style={backgroundStyle}>
+  <body class="string-site string-plain" style={backgroundStyle}>
     <div class="backdrop" aria-hidden="true"></div>
     <div class="soft-wash" aria-hidden="true"></div>
 

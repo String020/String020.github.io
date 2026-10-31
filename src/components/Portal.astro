@@ -27,6 +27,7 @@ import { backgroundStyle } from "../lib/images";
 import { managedNavigation, portalContent } from "../lib/portal-content";
 import "../styles/global.css";
 import "../styles/blog-features.css";
+import "../styles/string.css";
 
 type Props = {
   /** Portal route to open on load, e.g. "", "blog/", "skills/" or "blog/first-post/". */
@@ -127,6 +128,20 @@ const tagCounts = blogPosts.reduce((counts, post) => {
 const topTags = Array.from(tagCounts.entries())
   .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
   .slice(0, 8);
+// The blog list is grouped by month, with pinned posts in their own group first.
+const monthLabel = (post: (typeof blogPosts)[number]) =>
+  post.data.pinned
+    ? "PINNED"
+    : `${post.data.date.getFullYear()} · ${String(post.data.date.getMonth() + 1).padStart(2, "0")}`;
+const blogMonths = blogPosts.reduce((groups, post) => {
+  const label = monthLabel(post);
+  const group = groups.find((item) => item.label === label);
+  if (group) group.posts.push(post);
+  else groups.push({ label, posts: [post] });
+  return groups;
+}, [] as { label: string; posts: typeof blogPosts }[]);
+const searchText = (post: (typeof blogPosts)[number]) =>
+  [post.data.title, post.data.description, ...post.data.tags].join(" ").toLowerCase();
 ---
 
 <!doctype html>
@@ -147,7 +162,7 @@ const topTags = Array.from(tagCounts.entries())
     {notFound && <meta name="robots" content="noindex" />}
     <title>{pageTitle}</title>
   </head>
-  <body style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-editor-src={editorScriptUrl} data-initial-panel={notFound ? "not-found" : undefined}>
+  <body class="string-site" style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-editor-src={editorScriptUrl} data-initial-panel={notFound ? "not-found" : undefined}>
     <div class="backdrop" aria-hidden="true"></div>
     <div class="soft-wash" aria-hidden="true"></div>
 
@@ -413,14 +428,38 @@ const topTags = Array.from(tagCounts.entries())
               </div>
             )}
 
+            {blogPosts.length > 0 && (
+              <nav class="string-filters" aria-label="Filter posts">
+                <button type="button" class="is-on" data-filter="">全部</button>
+                {blogCategories.map((category) => (
+                  <button type="button" data-filter={category}>{category}</button>
+                ))}
+                {blogSeries.length > 0 && <span class="sep" aria-hidden="true">·</span>}
+                {blogSeries.map((series) => (
+                  <button type="button" data-filter={series}>{series}</button>
+                ))}
+                <label class="string-search">
+                  <span class="page-heading">Search posts</span>
+                  <input type="search" placeholder="search…" autocomplete="off" />
+                </label>
+              </nav>
+            )}
+
             <section class="blog-list" aria-label="Blog posts">
               {
-                blogPosts.map((post) => {
+                blogMonths.flatMap((group) => [
+                  <h3 class="string-month">{group.label}</h3>,
+                  ...group.posts.map((post) => {
                   const category = getCategory(post);
                   const series = getSeries(post);
                   const cover = getImageUrl(post, withBase);
                   return (
-                    <article class={`blog-row ${cover ? "has-cover" : ""}`}>
+                    <article
+                      class={`blog-row ${cover ? "has-cover" : ""}`}
+                      data-category={category}
+                      data-series={series || ""}
+                      data-text={searchText(post)}
+                    >
                       {cover && (
                         <a class="post-cover" href={withBase(`blog/${post.id}/`)} aria-label={post.data.title}>
                           <img src={cover} alt="" loading="lazy" />
@@ -438,16 +477,23 @@ const topTags = Array.from(tagCounts.entries())
                           <h2>{post.data.title}</h2>
                         </a>
                         <p>{post.data.description}</p>
-                        <div class="post-tags">
-                          {post.data.tags.map((tag) => (
-                            <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
-                          ))}
+                        <div class="string-row-meta">
+                          {category}
+                          {series && ` · ${series}`}
+                          {` · ${getReadingStats(post).label}`}
+                          <span class="post-tags">
+                            {post.data.tags.map((tag) => (
+                              <a href={withBase(`blog/tag/${slugifyTaxonomy(tag)}/`)}>#{tag}</a>
+                            ))}
+                          </span>
                         </div>
                       </div>
                     </article>
                   );
-                })
+                  }),
+                ])
               }
+              <p class="string-empty" hidden>这里还没有字。</p>
             </section>
           </article>
 
@@ -1571,7 +1617,7 @@ const topTags = Array.from(tagCounts.entries())
         const target = findInCurrentPanel(window.location.hash);
         if (target) requestAnimationFrame(() => scrollToTarget(target));
       }
-      window.portalRouter = { refresh: refreshPortalRouting, openPanel, openRoute, setActivePage };
+      window.portalRouter = { refresh: refreshPortalRouting, openPanel, openRoute, setActivePage, normalizeRoute };
 
       // Only signed-in administrators need the editor, so visitors never download it.
       let hasAdminSession = false;
@@ -1587,5 +1633,7 @@ const topTags = Array.from(tagCounts.entries())
         document.body.appendChild(editorScript);
       }
     </script>
+    <canvas class="string-stage" data-string-stage aria-hidden="true"></canvas>
+    <script is:inline src={withBase("assets/string-stage.js")}></script>
   </body>
 </html>

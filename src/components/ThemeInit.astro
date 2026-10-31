@@ -18,7 +18,8 @@
 
     const apply = () => {
       const preference = readPreference();
-      const theme = preference === "system" ? (media.matches ? "dark" : "light") : preference;
+      // The string design is drawn on white paper only, so the page always uses the light theme.
+      const theme = "light";
       document.documentElement.dataset.theme = theme;
       document.documentElement.dataset.themePreference = preference;
       window.dispatchEvent(new CustomEvent("portal-themechange", { detail: { theme, preference } }));
