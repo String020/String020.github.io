@@ -243,7 +243,9 @@
   let mode = "home", Et = 0, E = 0, navZone = -1, frozen = null, routeAt = null, internal = false;
   let S = 0, P = 0, lx = 0, sg = 60, zone = -1, mx = -1, my = -1, inside = false, touchLock = false, peek = null, nextPeek = 7, lastMove = -99, nextGust = 1;
   let title = "", titleP = 1, bandNavP = 0, navBoxes = [], circleEl = null, circleP = 1, hoverEl = null, hoverP = 0;
-  let lastTick = -1, T = 0, needDeco = true;
+  let lastTick = -1, drawTick = 0, T = 0, needDeco = true, forceDraw = true, lastSig = "";
+  let armed = -1, kbZone = -1, lastY = null, curToc = null, tocP = 1;
+  const navLinks = Array.from(document.querySelectorAll(".string-nav a"));
 
   const currentPanel = () => track.querySelector("[data-panel].is-current");
   const isHomePanel = (p) => !p || p.dataset.panel === "home";
@@ -266,18 +268,32 @@
 
   function syncBody() {
     const home = mode === "home" || mode === "exit";
-    body.classList.toggle("string-home", home && isHomePanel(currentPanel()));
+    const panel = currentPanel();
+    body.classList.toggle("string-home", home && isHomePanel(panel));
+    const tab = isHomePanel(panel) ? 0 : panel.dataset.tab !== undefined ? Number(panel.dataset.tab) : -1;
+    navLinks.forEach((link) => { if (Number(link.dataset.navIndex) === tab) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current"); });
   }
   function goRoute(route) { internal = true; try { window.portalRouter?.openRoute(route, true); } finally { internal = false; } syncBody(); }
 
   function startEnter(i) {
-    if (mode !== "home" || !geo || geo.i !== i) return;
+    armed = -1;
+    if (mode !== "home" || !NAV[i]) return;
+    const written = geo && geo.i === i;
+    if (!reduce && !written && !word(NAV[i].word).text) return;
     const slug = NAV[i].slug; navZone = i;
-    frozen = JSON.parse(JSON.stringify(geo)); title = NAV[i].word;
+    frozen = written ? JSON.parse(JSON.stringify(geo)) : null; title = NAV[i].word;
     window.scrollTo({ top: 0 });
     if (reduce) { goRoute(`${slug}/`); mode = "page"; Et = 1; titleP = 1; return; }
     mode = "enter"; Et = 0; routeAt = `${slug}/`;
   }
+  // Asking for a section finishes writing its word first, then enters.
+  function arm(i) {
+    if (!NAV[i]) return;
+    if (reduce || (zone === i && geo && geo.i === i && P > 0.97)) { startEnter(i); return; }
+    armed = i;
+  }
+  function nearestZone(x) { let z = 0; for (let i = 1; i < zx.length; i++) if (Math.abs(x - zx[i]) < Math.abs(x - zx[z])) z = i; return z; }
+  const nearString = (x, y) => Math.abs(y - H / 2) < 45 && x > W * 0.08 && x < W * 0.92;
   function startExit() {
     if (mode !== "page") return;
     const i = NAV.findIndex((n) => n.word === title);
@@ -293,6 +309,7 @@
   new MutationObserver(() => {
     if (internal) return;
     const panel = currentPanel(), home = isHomePanel(panel);
+    if (!home) armed = -1;
     if (home && (mode === "page" || mode === "enter")) { mode = "home"; Et = reduce ? 0 : Math.min(Et, 1); frozen = null; if (!reduce) mode = "exitPlain"; }
     else if (!home) { const t = titleFor(panel); if (t !== title) { title = t; titleP = 0; } if (mode === "home" || mode === "exit" || mode === "exitPlain") { mode = reduce ? "page" : "enterPlain"; frozen = null; if (reduce) Et = 1; } }
     syncBody(); needDeco = true;
@@ -317,6 +334,7 @@
     lctx.save(); lctx.translate(0, H / 2 + sway);
     for (const l of lines) {
       const pts = curve(ctrl(l, t, tick), l, t, tick), bw = l.w * (0.85 + 0.25 * l.B);
+      l.yNow = H / 2 + sway + pts[pts.length >> 1][1];
       if (l.carrier) cpts = pts; if (l.upper) upts = pts; if (l.lower) lpts = pts;
       if (l.split) { const b = Math.floor(pts.length * l.split); pencil(pts.slice(0, b + 6), bw, l.seed, tick); pencil(pts.slice(b - 6).map((p) => [p[0], p[1] + 1.6]), bw * 0.85, l.seed + 5, tick); } else pencil(pts, bw, l.seed, tick);
     }
@@ -352,8 +370,16 @@
     const vis = (r) => r.y < H && r.y + r.h > 0;
     panel.querySelectorAll(".blog-row:not([hidden]), .search-result-card, .managed-card").forEach((el, i) => { const r = rect(el); if (vis(r) && r.w) line(r.x, r.y + r.h, r.x + r.w, r.y + r.h, 60 + i * 5, tick, 0.7, 0.55 * (+getComputedStyle(el).opacity || 1)); });
     const on = panel.querySelector(".string-filters button.is-on");
-    if (on) { if (on !== circleEl) { circleEl = on; circleP = 0; } ellipse(rect(on), on.textContent.length * 3.1, tick, circleP); }
+    if (on) { if (on !== circleEl) { circleEl = on; circleP = reduce ? 1 : 0; } ellipse(rect(on), on.textContent.length * 3.1, tick, circleP); }
     panel.querySelectorAll(".string-search input, .portal-search-box").forEach((el, i) => { const r = rect(el); if (vis(r) && r.w) line(r.x, r.y + r.h, r.x + r.w, r.y + r.h + 1, 41 + i, tick, 0.9, 0.8); });
+    const toc = panel.querySelector(".toc-panel:not([hidden])");
+    if (toc) {
+      const links = Array.from(toc.querySelectorAll("a[href^='#']")); let cur = null;
+      for (const a of links) { const h = panel.querySelector(`[id="${CSS.escape(decodeURIComponent(a.hash.slice(1)))}"]`); if (h && h.getBoundingClientRect().top < 130) cur = a; }
+      cur = cur || links[0] || null;
+      if (cur !== curToc) { links.forEach((a) => a.classList.toggle("is-current", a === cur)); curToc = cur; tocP = reduce ? 1 : 0; }
+      if (cur) { const r = rect(cur); if (r.w) line(r.x + 1, r.y + r.h / 2, r.x + 10, r.y + r.h / 2 + 0.5, 13, tick, 1.2, 0.9, tocP); }
+    }
     if (hoverEl && hoverP > 0 && panel.contains(hoverEl)) { const r = rect(hoverEl); line(r.x - 2, r.y + r.h + 1, r.x + r.w + 3, r.y + r.h + 2, 90, tick, 1.1, 0.95, hoverP); }
     dctx.restore();
     tooth(dctx, tick);
@@ -371,66 +397,94 @@
     if (!reduce && t > nextGust) { const l = lines[Math.floor(Math.random() * lines.length)]; const x = W * (0.12 + Math.random() * 0.76), a = 3 + Math.random() * 5; gusts.push({ x, yo: l.yo, a, t0: t }); if (Math.random() < 0.4) gusts.push({ x: x + (Math.random() - 0.5) * W * 0.4, yo: lines[Math.floor(Math.random() * lines.length)].yo, a: a * 0.7, t0: t + 0.3 + Math.random() * 0.6 }); gusts = gusts.slice(-14); nextGust = t + 0.8 + Math.random() * 2.6; }
     if (!reduce) for (const l of lines) if ((!l.tw || t - l.tw.t0 > 0.6) && Math.random() < 0.012) l.tw = { j: 1 + Math.floor(Math.random() * (SEG - 1)), t0: t, a: (Math.random() - 0.5) * (l.type === 2 ? 14 : 8) };
     if (mode === "enter") { Et = Math.min(1, Et + 0.085); if (routeAt && Et > 0.55) { const r = routeAt; routeAt = null; goRoute(r); } if (Et >= 1) { mode = "page"; frozen = null; titleP = 1; } }
-    else if (mode === "enterPlain") { Et = Math.min(1, Et + 0.11); titleP = Math.min(1, titleP + 0.14); if (Et >= 1) mode = "page"; }
+    else if (mode === "enterPlain") { Et = Math.min(1, Et + 0.11); titleP = reduce ? 1 : Math.min(1, titleP + 0.14); if (Et >= 1) mode = "page"; }
     else if (mode === "exit" || mode === "exitPlain") { Et = Math.max(0, Et - 0.09); if (Et <= 0) { const wasExit = mode === "exit"; mode = "home"; frozen = null; if (wasExit && navZone >= 0) { zone = navZone; S = 1; P = 1; inside = false; } syncBody(); } }
-    else if (mode === "page") { Et = 1; titleP = Math.min(1, titleP + 0.14); }
+    else if (mode === "page") { Et = 1; titleP = reduce ? 1 : Math.min(1, titleP + 0.14); }
     E = sstep(clamp(Et / 0.85)); for (const l of extras) l.g = clamp((E - l.delay) / 0.5);
     if (mode === "home") {
-      let T2 = 0; const now = performance.now() / 1000;
-      if (inside && mx > W * 0.08 && mx < W * 0.92) { const v = clamp(1 - (Math.abs(my - H / 2) - 12) / 33); if (v > 0) { T2 = v; let z = 0; for (let i = 1; i < zx.length; i++) if (Math.abs(mx - zx[i]) < Math.abs(mx - zx[z])) z = i; if (z !== zone && S > 0.15) T2 = 0; else { if (z !== zone) P = 0; zone = z; } } }
+      let T2 = 0, want = armed >= 0 ? armed : kbZone; const now = performance.now() / 1000;
+      if (want >= 0) T2 = 1;
+      else if (inside && mx > W * 0.08 && mx < W * 0.92) { const v = clamp(1 - (Math.abs(my - H / 2) - 12) / 33); if (v > 0) { T2 = v; want = nearestZone(mx); } }
+      if (want >= 0) { if (want !== zone && S > 0.15) T2 = 0; else { if (want !== zone) P = 0; zone = want; } }
       if (!T2 && !inside && !reduce && now - lastMove > 6) { if (!peek && t > nextPeek) { peek = { i: Math.floor(Math.random() * NAV.length), t0: t }; nextPeek = t + 9 + Math.random() * 5; } if (peek) { if (t - peek.t0 < 1.8) { if (S < 0.05 || zone === peek.i) { if (zone !== peek.i) P = 0; zone = peek.i; T2 = 0.5; } } else peek = null; } }
-      S += (T2 - S) * (T2 > S ? 0.3 : 0.2); if (zone >= 0) { lx = zx[zone]; sg = zs[zone]; }
-      const Pmax = clamp((S - 0.25) / 0.55); P = P < Pmax ? Math.min(Pmax, P + 0.14) : Math.max(Pmax, P - 0.28);
-      cv.style.cursor = S > 0.5 ? "pointer" : "";
-    } else { S += (0 - S) * 0.3; }
-    bandNavP = mode === "page" && my >= 0 && my < 72 ? Math.min(1, bandNavP + 0.12) : Math.max(0, bandNavP - 0.25);
-    circleP = Math.min(1, circleP + 0.2); hoverP = hoverEl ? Math.min(1, hoverP + 0.34) : 0;
-    if (mode === "page") cv.style.cursor = bandNavP > 0.3 && navHit(mx, my) ? "pointer" : "";
+      S = reduce ? T2 : S + (T2 - S) * (T2 > S ? 0.3 : 0.2); if (zone >= 0) { lx = zx[zone]; sg = zs[zone]; }
+      const Pmax = clamp((S - 0.25) / 0.55); P = reduce ? Pmax : P < Pmax ? Math.min(Pmax, P + (armed >= 0 ? 0.25 : 0.14)) : Math.max(Pmax, P - 0.28);
+      if (armed >= 0 && zone === armed && P > 0.98 && ((geo && geo.i === armed) || word(NAV[armed].word).text)) startEnter(armed);
+      body.classList.toggle("string-pointer", armed >= 0 || (inside && nearString(mx, my)));
+    } else { S = reduce ? 0 : S * 0.7; }
+    const overBand = mode === "page" && my >= 0 && (my < TOP + 18 || (my < 72 && bandNavP > 0));
+    bandNavP = reduce ? (overBand ? 1 : 0) : overBand ? Math.min(1, bandNavP + 0.12) : Math.max(0, bandNavP - 0.25);
+    circleP = reduce ? 1 : Math.min(1, circleP + 0.2); tocP = reduce ? 1 : Math.min(1, tocP + 0.34); hoverP = hoverEl ? (reduce ? 1 : Math.min(1, hoverP + 0.34)) : 0;
+    if (mode !== "home") body.classList.toggle("string-pointer", mode === "page" && bandNavP > 0.3 && !!navHit(mx, my));
   }
   function frame(now) {
     requestAnimationFrame(frame);
     if (body.classList.contains("is-editing") || document.hidden) return;
-    const tick = Math.floor((now / 1000) * FPS);
-    if (tick === lastTick) { if (needDeco) { renderDeco(lastTick); composite(); needDeco = false; } return; }
-    if (!reduce && lastTick >= 0 && hash(tick, 99) < 0.16 && mode === "home") { lastTick = tick; return; }
-    lastTick = tick; T = reduce ? 0 : tick / FPS;
-    step(); renderLines(tick); renderDeco(tick); composite(); needDeco = false;
+    const clock = Math.floor((now / 1000) * FPS);
+    if (clock === lastTick) { if (needDeco) { renderDeco(drawTick); composite(); needDeco = false; } return; }
+    if (!reduce && lastTick >= 0 && hash(clock, 99) < 0.16 && mode === "home") { lastTick = clock; return; }
+    lastTick = clock; drawTick = reduce ? 0 : clock; T = reduce ? 0 : clock / FPS;
+    step();
+    // Reduced motion freezes the drawing seed and only redraws when something actually changed.
+    if (reduce) { const sig = [mode, S, P, E, zone, title, titleP, bandNavP, circleP, tocP, hoverP].join(); if (sig === lastSig && !forceDraw) { if (needDeco) { renderDeco(drawTick); composite(); needDeco = false; } return; } lastSig = sig; }
+    draw();
   }
+  function draw() { renderLines(drawTick); renderDeco(drawTick); composite(); needDeco = false; forceDraw = false; }
   function navHit(x, y) { if (y < 0 || y > 72) return null; return navBoxes.find((b) => x >= b.x && x <= b.x + b.ww) || null; }
+  // The canvas is sized in pixels so it always matches the drawing, even while a phone's address bar moves.
   function resize() {
-    D = Math.min(2, window.devicePixelRatio || 1); W = Math.max(1, window.innerWidth); H = Math.max(1, window.innerHeight);
+    D = Math.min(2, window.devicePixelRatio || 1); W = Math.max(1, document.documentElement.clientWidth); H = Math.max(1, window.innerHeight);
     for (const c of [cv, linesCv, decoCv]) { c.width = Math.round(W * D); c.height = Math.round(H * D); }
-    layoutLines(); lastTick = -1;
+    cv.style.width = `${W}px`; cv.style.height = `${H}px`;
+    layoutLines(); for (const l of extras) l.g = clamp((E - l.delay) / 0.5);
+    forceDraw = true;
   }
 
   // ---------- input ----------
   const interactive = (el) => el && el.closest && el.closest("a,button,input,textarea,select,label,dialog,iframe,[data-editor-toolbar],.page-editor,.giscus");
   window.addEventListener("pointermove", (e) => {
     mx = e.clientX; my = e.clientY;
-    if (e.pointerType === "mouse") { inside = true; lastMove = performance.now() / 1000; }
+    if (e.pointerType !== "mouse") return;
+    inside = true; lastMove = performance.now() / 1000;
+    // Sweeping across the bundle disturbs the line it crosses, and the ripple spreads to the others.
+    if (mode === "home" && !reduce && lastY !== null && Math.abs(my - H / 2) < 90) {
+      const crossed = lines.find((l) => l.yNow !== undefined && mx > l.a0 && mx < l.a1 && (lastY - l.yNow) * (my - l.yNow) <= 0);
+      if (crossed) { gusts.push({ x: mx, yo: crossed.yo, a: Math.min(9, 3 + Math.abs(my - lastY) * 0.4), t0: performance.now() / 1000 }); gusts = gusts.slice(-14); }
+    }
+    lastY = my;
   }, { passive: true });
-  document.documentElement.addEventListener("pointerleave", () => { if (!touchLock) inside = false; my = -1; });
+  document.documentElement.addEventListener("pointerleave", () => { if (!touchLock) inside = false; my = -1; lastY = null; });
   window.addEventListener("click", (e) => {
     if (body.classList.contains("is-editing")) return;
+    const x = e.clientX, y = e.clientY;
     if (mode === "home" && isHomePanel(currentPanel())) {
-      if (interactive(e.target)) return;
-      const x = e.clientX, y = e.clientY, near = Math.abs(y - H / 2) < 45 && x > W * 0.08 && x < W * 0.92;
-      if (e.pointerType === "mouse" || !e.pointerType) { if (zone >= 0 && S > 0.5 && P > 0.95) startEnter(zone); return; }
-      let z = 0; for (let i = 1; i < zx.length; i++) if (Math.abs(x - zx[i]) < Math.abs(x - zx[z])) z = i;
-      if (near && touchLock && zone === z && S > 0.6 && P > 0.95) { startEnter(zone); return; }
+      if (interactive(e.target) || !NAV.length) return;
+      const near = nearString(x, y), z = nearestZone(x);
+      if (e.pointerType === "mouse" || !e.pointerType) { if (near) arm(z); return; }
+      if (near && touchLock && zone === z) { arm(z); return; }
       if (near) { mx = x; my = H / 2; inside = true; touchLock = true; } else { inside = false; touchLock = false; }
       return;
     }
-    if (mode === "page" && e.clientY < 72 && !interactive(e.target)) {
-      const b = bandNavP > 0.3 && navHit(e.clientX, e.clientY);
-      if (b && b.n.slug) { if (b.n.word !== title) { goRoute(`${b.n.slug}/`); } }
-      else startExit();
-    }
+    if (mode !== "page") return;
+    const onBand = e.target.closest && e.target.closest(".string-band-hit"), b = bandNavP > 0.3 && navHit(x, y);
+    if (b && (onBand || (!interactive(e.target) && !String(window.getSelection())))) { if (!b.n.slug) startExit(); else if (b.n.word !== title) goRoute(`${b.n.slug}/`); return; }
+    if (onBand) startExit();
+  });
+  // Keyboard: focusing a section link opens the string there, and Enter runs the same transition.
+  const navEl = document.querySelector(".string-nav");
+  navEl?.addEventListener("focusin", (e) => { const i = e.target.dataset?.zone; kbZone = mode === "home" && i !== undefined ? Number(i) : -1; });
+  navEl?.addEventListener("focusout", () => { kbZone = -1; });
+  navEl?.addEventListener("click", (e) => {
+    const link = e.target.closest("a"); if (!link || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const i = link.dataset.zone;
+    if (mode === "home" && isHomePanel(currentPanel()) && i !== undefined) { e.preventDefault(); e.stopPropagation(); arm(Number(i)); }
+    else if (mode === "page" && i === undefined) { e.preventDefault(); e.stopPropagation(); startExit(); }
   });
   window.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") { mx = e.clientX; my = e.clientY; } }, { passive: true });
   document.addEventListener("pointerover", (e) => { const a = e.target.closest && e.target.closest(".post-title-link, a.managed-card h3, .search-result-card .post-title-link"); if (a !== hoverEl) { hoverEl = a; hoverP = 0; needDeco = true; } });
   window.addEventListener("scroll", () => { needDeco = true; }, { passive: true });
-  window.addEventListener("resize", () => { resize(); needDeco = true; });
+  let resizeQueued = false;
+  window.addEventListener("resize", () => { if (resizeQueued) return; resizeQueued = true; requestAnimationFrame(() => { resizeQueued = false; resize(); if (!document.hidden && !body.classList.contains("is-editing")) draw(); }); });
 
   // ---------- blog filters ----------
   const filters = document.querySelector(".string-filters");

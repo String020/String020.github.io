@@ -25,11 +25,73 @@ body.string-site {
 
 .string-stage {
   height: 100vh;
-  inset: 0;
+  left: 0;
   pointer-events: none;
   position: fixed;
-  width: 100vw;
+  top: 0;
+  width: 100%;
   z-index: 3;
+}
+
+/* Keeps sticky contents working: "hidden" would make the stage a scroll container. */
+.string-site .content-stage {
+  overflow: hidden;
+  overflow: clip;
+}
+
+/* Clicks on the top band go home; the layer also stops them reaching text scrolled under the band. */
+.string-band-hit {
+  cursor: pointer;
+  height: 52px;
+  inset: 0 0 auto;
+  position: fixed;
+  z-index: 4;
+}
+
+body.string-home .string-band-hit,
+body.is-editing .string-band-hit,
+body.is-editing .string-nav {
+  display: none;
+}
+
+body.string-pointer,
+body.string-pointer * {
+  cursor: pointer !important;
+}
+
+/* Section links for keyboards and screen readers: hidden until they take focus. */
+.string-nav:not(:focus-within) {
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: fixed;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.string-nav:focus-within {
+  background: var(--paper);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 14px;
+  gap: 4px 16px;
+  left: max(16px, calc(50% - 362px));
+  padding: 4px 8px;
+  position: fixed;
+  top: 56px;
+  z-index: 5;
+}
+
+.string-nav a[aria-current="page"] {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.string-site a:focus-visible,
+.string-site button:focus-visible,
+.string-site input:focus-visible {
+  outline: 1px dashed var(--ink);
+  outline-offset: 3px;
 }
 
 .string-site .backdrop,
@@ -447,7 +509,11 @@ body.string-home .app-shell {
 .string-site .toc-panel a {
   color: var(--ash);
   display: block;
-  padding: 2px 0;
+  padding: 2px 0 2px 14px;
+}
+
+.string-site .toc-panel a.is-current {
+  color: var(--ink);
 }
 
 .string-site .toc-panel a:hover {
@@ -455,7 +521,7 @@ body.string-home .app-shell {
 }
 
 .string-site .toc-panel a.depth-3 {
-  padding-left: 12px;
+  padding-left: 26px;
 }
 
 .string-site .post-nav {
@@ -487,10 +553,14 @@ body.string-home .app-shell {
   text-align: right;
 }
 
-.string-site .back-to-top {
+/* The arrow is drawn on the canvas below this button, so the button itself must stay clear. */
+.string-site .back-to-top,
+.string-site .back-to-top:hover,
+.string-site .back-to-top:focus-visible {
+  backdrop-filter: none;
   background: transparent;
   border: 0;
-  bottom: 18px;
+  bottom: 10px;
   box-shadow: none;
   color: transparent;
   height: 40px;

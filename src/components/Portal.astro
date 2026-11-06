@@ -163,6 +163,20 @@ const searchText = (post: (typeof blogPosts)[number]) =>
     <title>{pageTitle}</title>
   </head>
   <body class="string-site" style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-editor-src={editorScriptUrl} data-initial-panel={notFound ? "not-found" : undefined}>
+    <nav class="string-nav" aria-label="Site sections">
+      {
+        navigation.map((item, index) => (
+          <a
+            href={item.kind === "home" ? withBase() : withBase(`${item.slug}/`)}
+            data-nav-index={index}
+            data-zone={item.kind === "home" ? undefined : navigation.filter((entry) => entry.kind !== "home").indexOf(item)}
+          >
+            {item.label.toLowerCase()}
+          </a>
+        ))
+      }
+    </nav>
+    <div class="string-band-hit" aria-hidden="true"></div>
     <div class="backdrop" aria-hidden="true"></div>
     <div class="soft-wash" aria-hidden="true"></div>
 
