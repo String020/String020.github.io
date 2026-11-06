@@ -59,32 +59,16 @@ body.string-pointer * {
   cursor: pointer !important;
 }
 
-/* Section links for keyboards and screen readers: hidden until they take focus. */
-.string-nav:not(:focus-within) {
+/* Section links for keyboards and screen readers. Focus is drawn on the canvas, not here. */
+.string-nav {
   clip-path: inset(50%);
   height: 1px;
+  left: 0;
   overflow: hidden;
   position: fixed;
+  top: 0;
   white-space: nowrap;
   width: 1px;
-}
-
-.string-nav:focus-within {
-  background: var(--paper);
-  display: flex;
-  flex-wrap: wrap;
-  font-size: 14px;
-  gap: 4px 16px;
-  left: max(16px, calc(50% - 362px));
-  padding: 4px 8px;
-  position: fixed;
-  top: 56px;
-  z-index: 5;
-}
-
-.string-nav a[aria-current="page"] {
-  text-decoration: underline;
-  text-underline-offset: 3px;
 }
 
 .string-site a:focus-visible,

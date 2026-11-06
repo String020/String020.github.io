@@ -147,7 +147,7 @@
   }
 
   // ---------- the bundle ----------
-  let lines = [], extras = [], gusts = [], cpts = [], upts = [], lpts = [], zx = [], zs = [];
+  let lines = [], extras = [], gusts = [], cpts = [], upts = [], lpts = [], zx = [], zs = [], zc = [];
   function makeLine(k) {
     const type = k < 2 ? 0 : k < 6 ? 1 : 2, branch = type === 2 && hash(k, 40) < 0.55, left = hash(k, 41) < 0.5;
     let x0 = rnd(k, 1, 0.03, 0.12), x1 = rnd(k, 2, 0.88, 0.97);
@@ -174,6 +174,7 @@
     for (let k = 0; k < 18; k++) { const l = makeLine(30 + k); l.extra = true; l.type = hash(k, 71) < 0.3 ? 1 : 2; l.w = l.type === 1 ? rnd(k, 72, 1.4, 2.1) : rnd(k, 72, 0.7, 1.3); l.bandY = (k % 2 ? botOff : -topOff) + (hash(k, 73) - 0.5) * 9; l.delay = hash(k, 74) * 0.45; l.x0 = W * rnd(k, 75, 0, 0.25); l.x1 = W * rnd(k, 76, 0.75, 1); l.split = 0; l.g = 0; extras.push(l); }
     zx = NAV.map((_, i) => W * (0.14 + (0.72 * (i + 0.5)) / Math.max(1, NAV.length)));
     zs = NAV.map((n) => Math.max(42, (word(n.word).w * 1.25 / 2 + 16) / 0.62));
+    zc = NAV.map((n) => (word(n.word).w * 1.25) / 2 + 24);
   }
   const rest = (l, x) => { const g = (x - W / 2) / (W / 2), side = g < 0 ? l.fanL : l.fanR; return l.yo * (1.9 + 1.3 * l.B) + side * Math.pow(Math.abs(g), 1.3); };
   function ctrl(l, t, tick) {
@@ -219,9 +220,9 @@
   // Three strands peel off the upper, middle and lower lines and write the word together.
   function writeNav(i, G, tick) {
     if (G <= 0 || i < 0 || !cpts.length || !upts.length || !lpts.length) return;
-    const wd = word(NAV[i].word), GS = 1.25;
-    if (wd.text) { drawWord(NAV[i].word, lx - (wd.w * GS) / 2, carrierY(lx) + 2, GS, G, i, tick, 1.4); return; }
-    const x0 = lx - (wd.w * GS) / 2, xe = x0 + wd.w * GS, run = Math.min(60, sg * 0.9), Y = { u: upperY, c: carrierY, l: lowerY };
+    const wd = word(NAV[i].word), GS = 1.25, cx = zx[i];
+    if (wd.text) { drawWord(NAV[i].word, cx - (wd.w * GS) / 2, carrierY(cx) + 2, GS, G, i, tick, 1.4); return; }
+    const x0 = cx - (wd.w * GS) / 2, xe = x0 + wd.w * GS, run = Math.min(60, zs[i] * 0.9), Y = { u: upperY, c: carrierY, l: lowerY };
     for (const st of STRANDS) {
       const g = clamp((G - st.delay) / 0.76); if (g <= 0) continue;
       const F = Y[st.from], T = Y[st.to], sd = i * 17 + st.sd, pts = [];
@@ -244,7 +245,7 @@
   let S = 0, P = 0, lx = 0, sg = 60, zone = -1, mx = -1, my = -1, inside = false, touchLock = false, peek = null, nextPeek = 7, lastMove = -99, nextGust = 1;
   let title = "", titleP = 1, bandNavP = 0, navBoxes = [], circleEl = null, circleP = 1, hoverEl = null, hoverP = 0;
   let lastTick = -1, drawTick = 0, T = 0, needDeco = true, forceDraw = true, lastSig = "";
-  let armed = -1, kbZone = -1, lastY = null, curToc = null, tocP = 1;
+  let armed = -1, kbZone = -1, kbBand = -1, lastY = null, curToc = null, tocP = 1;
   const navLinks = Array.from(document.querySelectorAll(".string-nav a"));
 
   const currentPanel = () => track.querySelector("[data-panel].is-current");
@@ -271,7 +272,10 @@
     const panel = currentPanel();
     body.classList.toggle("string-home", home && isHomePanel(panel));
     const tab = isHomePanel(panel) ? 0 : panel.dataset.tab !== undefined ? Number(panel.dataset.tab) : -1;
-    navLinks.forEach((link) => { if (Number(link.dataset.navIndex) === tab) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current"); });
+    navLinks.forEach((link) => {
+      if (Number(link.dataset.navIndex) === tab) link.setAttribute("aria-current", "page"); else link.removeAttribute("aria-current");
+      link.tabIndex = isHomePanel(panel) && link.dataset.zone === undefined ? -1 : 0; // "string" leads nowhere from the string itself.
+    });
   }
   function goRoute(route) { internal = true; try { window.portalRouter?.openRoute(route, true); } finally { internal = false; } syncBody(); }
 
@@ -292,7 +296,8 @@
     if (reduce || (zone === i && geo && geo.i === i && P > 0.97)) { startEnter(i); return; }
     armed = i;
   }
-  function nearestZone(x) { let z = 0; for (let i = 1; i < zx.length; i++) if (Math.abs(x - zx[i]) < Math.abs(x - zx[z])) z = i; return z; }
+  // The section whose word sits under x, if any. Between words the lines still part, but nothing is written.
+  function zoneAt(x) { let z = -1, best = Infinity; zx.forEach((c, i) => { const d = Math.abs(x - c); if (d < zc[i] && d < best) { z = i; best = d; } }); return z; }
   const nearString = (x, y) => Math.abs(y - H / 2) < 45 && x > W * 0.08 && x < W * 0.92;
   function startExit() {
     if (mode !== "page") return;
@@ -345,7 +350,7 @@
     navBoxes = [];
     if (bandNavP > 0) {
       const list = [{ word: "string", slug: "" }, ...NAV]; let x = W * 0.42;
-      list.forEach((n, i) => { const g = clamp(bandNavP * list.length - i), ww = word(n.word).w * 1.05; if (g > 0) drawWord(n.word, x, TOP + 24, 1.05, g, 30 + i * 9, tick, 1.1, 0.9); navBoxes.push({ n, x: x - 4, ww: ww + 8 }); x += ww + 24; });
+      list.forEach((n, i) => { const g = clamp(bandNavP * list.length - i), ww = word(n.word).w * 1.05; if (g > 0) { drawWord(n.word, x, TOP + 24, 1.05, g, 30 + i * 9, tick, 1.1, 0.9); if (kbBand === i && g >= 1) line(x - 2, TOP + 37, x + ww + 2, TOP + 38, 95, tick, 1.3, 0.95); } navBoxes.push({ n, x: x - 4, ww: ww + 8 }); x += ww + 24; });
     }
     if (mode === "page") {
       const rp = document.querySelector("[data-reading-progress]");
@@ -402,17 +407,21 @@
     else if (mode === "page") { Et = 1; titleP = reduce ? 1 : Math.min(1, titleP + 0.14); }
     E = sstep(clamp(Et / 0.85)); for (const l of extras) l.g = clamp((E - l.delay) / 0.5);
     if (mode === "home") {
-      let T2 = 0, want = armed >= 0 ? armed : kbZone; const now = performance.now() / 1000;
+      // tx is where the lines part: under the cursor, or on a word's own place once the cursor reaches it.
+      let T2 = 0, want = armed >= 0 ? armed : kbZone, tx = want >= 0 ? zx[want] : -1; const now = performance.now() / 1000;
       if (want >= 0) T2 = 1;
-      else if (inside && mx > W * 0.08 && mx < W * 0.92) { const v = clamp(1 - (Math.abs(my - H / 2) - 12) / 33); if (v > 0) { T2 = v; want = nearestZone(mx); } }
-      if (want >= 0) { if (want !== zone && S > 0.15) T2 = 0; else { if (want !== zone) P = 0; zone = want; } }
-      if (!T2 && !inside && !reduce && now - lastMove > 6) { if (!peek && t > nextPeek) { peek = { i: Math.floor(Math.random() * NAV.length), t0: t }; nextPeek = t + 9 + Math.random() * 5; } if (peek) { if (t - peek.t0 < 1.8) { if (S < 0.05 || zone === peek.i) { if (zone !== peek.i) P = 0; zone = peek.i; T2 = 0.5; } } else peek = null; } }
-      S = reduce ? T2 : S + (T2 - S) * (T2 > S ? 0.3 : 0.2); if (zone >= 0) { lx = zx[zone]; sg = zs[zone]; }
-      const Pmax = clamp((S - 0.25) / 0.55); P = reduce ? Pmax : P < Pmax ? Math.min(Pmax, P + (armed >= 0 ? 0.25 : 0.14)) : Math.max(Pmax, P - 0.28);
+      else if (inside && mx > W * 0.08 && mx < W * 0.92) { const v = clamp(1 - (Math.abs(my - H / 2) - 12) / 33); if (v > 0) { T2 = v; want = zoneAt(mx); tx = want >= 0 ? zx[want] : mx; } }
+      if (!T2 && !inside && !reduce && now - lastMove > 6) { if (!peek && t > nextPeek) { peek = { i: Math.floor(Math.random() * NAV.length), t0: t }; nextPeek = t + 9 + Math.random() * 5; } if (peek) { if (t - peek.t0 < 1.8) { if (S < 0.05 || zone === peek.i) { want = peek.i; tx = zx[want]; T2 = 0.5; } } else peek = null; } }
+      if (tx >= 0) { const go = reduce || S < 0.03 ? 1 : armed >= 0 ? 0.6 : 0.35; lx += (tx - lx) * go; sg += ((want >= 0 ? zs[want] : Math.max(56, Math.min(84, W * 0.055))) - sg) * go; }
+      S = reduce ? T2 : S + (T2 - S) * (T2 > S ? 0.3 : 0.2);
+      if (want !== zone && P <= 0.02) { zone = want; P = 0; }
+      // A word is written only once the opening has arrived at it, and rubs out before another begins.
+      const arrived = zone >= 0 && want === zone ? clamp((1 - Math.abs(lx - zx[zone]) / (sg * 0.7)) * 1.4) : 0;
+      const Pmax = clamp((S - 0.25) / 0.55) * arrived; P = reduce ? Pmax : P < Pmax ? Math.min(Pmax, P + (armed >= 0 ? 0.25 : 0.14)) : Math.max(Pmax, P - 0.28);
       if (armed >= 0 && zone === armed && P > 0.98 && ((geo && geo.i === armed) || word(NAV[armed].word).text)) startEnter(armed);
-      body.classList.toggle("string-pointer", armed >= 0 || (inside && nearString(mx, my)));
+      body.classList.toggle("string-pointer", armed >= 0 || (inside && nearString(mx, my) && zoneAt(mx) >= 0));
     } else { S = reduce ? 0 : S * 0.7; }
-    const overBand = mode === "page" && my >= 0 && (my < TOP + 18 || (my < 72 && bandNavP > 0));
+    const overBand = mode === "page" && (kbBand >= 0 || (my >= 0 && (my < TOP + 18 || (my < 72 && bandNavP > 0))));
     bandNavP = reduce ? (overBand ? 1 : 0) : overBand ? Math.min(1, bandNavP + 0.12) : Math.max(0, bandNavP - 0.25);
     circleP = reduce ? 1 : Math.min(1, circleP + 0.2); tocP = reduce ? 1 : Math.min(1, tocP + 0.34); hoverP = hoverEl ? (reduce ? 1 : Math.min(1, hoverP + 0.34)) : 0;
     if (mode !== "home") body.classList.toggle("string-pointer", mode === "page" && bandNavP > 0.3 && !!navHit(mx, my));
@@ -426,7 +435,7 @@
     lastTick = clock; drawTick = reduce ? 0 : clock; T = reduce ? 0 : clock / FPS;
     step();
     // Reduced motion freezes the drawing seed and only redraws when something actually changed.
-    if (reduce) { const sig = [mode, S, P, E, zone, title, titleP, bandNavP, circleP, tocP, hoverP].join(); if (sig === lastSig && !forceDraw) { if (needDeco) { renderDeco(drawTick); composite(); needDeco = false; } return; } lastSig = sig; }
+    if (reduce) { const sig = [mode, S, P, E, zone, lx, kbBand, title, titleP, bandNavP, circleP, tocP, hoverP].join(); if (sig === lastSig && !forceDraw) { if (needDeco) { renderDeco(drawTick); composite(); needDeco = false; } return; } lastSig = sig; }
     draw();
   }
   function draw() { renderLines(drawTick); renderDeco(drawTick); composite(); needDeco = false; forceDraw = false; }
@@ -459,9 +468,9 @@
     const x = e.clientX, y = e.clientY;
     if (mode === "home" && isHomePanel(currentPanel())) {
       if (interactive(e.target) || !NAV.length) return;
-      const near = nearString(x, y), z = nearestZone(x);
-      if (e.pointerType === "mouse" || !e.pointerType) { if (near) arm(z); return; }
-      if (near && touchLock && zone === z) { arm(z); return; }
+      const near = nearString(x, y), z = zoneAt(x);
+      if (e.pointerType === "mouse" || !e.pointerType) { if (near && z >= 0) arm(z); return; }
+      if (near && touchLock && z >= 0 && zone === z) { arm(z); return; }
       if (near) { mx = x; my = H / 2; inside = true; touchLock = true; } else { inside = false; touchLock = false; }
       return;
     }
@@ -470,10 +479,11 @@
     if (b && (onBand || (!interactive(e.target) && !String(window.getSelection())))) { if (!b.n.slug) startExit(); else if (b.n.word !== title) goRoute(`${b.n.slug}/`); return; }
     if (onBand) startExit();
   });
-  // Keyboard: focusing a section link opens the string there, and Enter runs the same transition.
+  // Keyboard: focus is shown in pencil. On the string a section link writes its word there, and Enter runs the
+  // same transition; on a page the band grows its words and the focused one is underlined.
   const navEl = document.querySelector(".string-nav");
-  navEl?.addEventListener("focusin", (e) => { const i = e.target.dataset?.zone; kbZone = mode === "home" && i !== undefined ? Number(i) : -1; });
-  navEl?.addEventListener("focusout", () => { kbZone = -1; });
+  navEl?.addEventListener("focusin", (e) => { const i = e.target.dataset?.zone; kbZone = mode === "home" && i !== undefined ? Number(i) : -1; kbBand = i !== undefined ? Number(i) + 1 : 0; });
+  navEl?.addEventListener("focusout", () => { kbZone = -1; kbBand = -1; });
   navEl?.addEventListener("click", (e) => {
     const link = e.target.closest("a"); if (!link || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const i = link.dataset.zone;

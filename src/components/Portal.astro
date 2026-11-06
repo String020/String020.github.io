@@ -1,4 +1,6 @@
 ---
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { Image } from "astro:assets";
 import { getCollection } from "astro:content";
 import profilePhoto from "../assets/profile-photo.jpg";
@@ -43,6 +45,9 @@ type Props = {
   /** Renders the 404 panel, which opens for any address without a portal route. */
   notFound?: boolean;
 };
+
+// Pages caches this file for ten minutes, so its address changes with its content.
+const stageVersion = createHash("sha1").update(readFileSync("public/assets/string-stage.js")).digest("hex").slice(0, 10);
 
 const {
   route = "",
@@ -1648,6 +1653,6 @@ const searchText = (post: (typeof blogPosts)[number]) =>
       }
     </script>
     <canvas class="string-stage" data-string-stage aria-hidden="true"></canvas>
-    <script is:inline src={withBase("assets/string-stage.js")}></script>
+    <script is:inline src={`${withBase("assets/string-stage.js")}?v=${stageVersion}`}></script>
   </body>
 </html>
