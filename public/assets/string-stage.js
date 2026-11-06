@@ -202,7 +202,11 @@
       const u = (p[0] - X0) / XL, sx = p[0] + 1000;
       let y = p[1] + l.bow * Math.sin(Math.PI * u) + hw * (1.3 * noise(sx / 55 + sd, 0) + 0.65 * noise(sx / 18 + sd * 2, 1) + 0.35 * noise(sx / 6 + sd * 3, 2) + 0.8 * noiseL(sx / 80 + sd * 4)) + (u > 0.96 ? l.hook * ((u - 0.96) / 0.04) ** 2 : 0);
       let lens = 0;
-      if (S > 0.001 && !l.extra) { const dx = (p[0] - lx) / sg; lens = l.open * 38 * S * (1 + 0.1 * noise(l.seed, t * 0.6)) * Math.exp(-dx * dx); }
+      if (!l.extra && (S > 0.001 || fades.length)) {
+        const bump = (x, w, v) => { const dx = (p[0] - x) / w; return v * Math.exp(-dx * dx); };
+        let open = bump(lx, sg, S); for (const f of fades) open += bump(f.x, f.sg, f.s);
+        lens = l.open * 38 * open * (1 + 0.1 * noise(l.seed, t * 0.6));
+      }
       y += lens;
       if (!reduce) {
         y += (0.6 + 0.5 * l.B) * (0.6 * noise(sx / 40 + sd, tick * 1.7) + 0.3 * noise(sx / 12 + sd, tick * 2.3 + 5));
@@ -242,7 +246,7 @@
 
   // ---------- state ----------
   let mode = "home", Et = 0, E = 0, navZone = -1, frozen = null, routeAt = null, internal = false;
-  let S = 0, P = 0, lx = 0, sg = 60, zone = -1, mx = -1, my = -1, inside = false, touchLock = false, peek = null, nextPeek = 7, lastMove = -99, nextGust = 1;
+  let S = 0, P = 0, lx = 0, sg = 60, fades = [], lastMx = -1, lastT = 0, zone = -1, mx = -1, my = -1, inside = false, touchLock = false, peek = null, nextPeek = 7, lastMove = -99, nextGust = 1;
   let title = "", titleP = 1, bandNavP = 0, navBoxes = [], circleEl = null, circleP = 1, hoverEl = null, hoverP = 0;
   let lastTick = -1, drawTick = 0, T = 0, needDeco = true, forceDraw = true, lastSig = "";
   let armed = -1, kbZone = -1, kbBand = -1, lastY = null, curToc = null, tocP = 1;
@@ -406,12 +410,17 @@
     else if (mode === "exit" || mode === "exitPlain") { Et = Math.max(0, Et - 0.09); if (Et <= 0) { const wasExit = mode === "exit"; mode = "home"; frozen = null; if (wasExit && navZone >= 0) { zone = navZone; S = 1; P = 1; inside = false; } syncBody(); } }
     else if (mode === "page") { Et = 1; titleP = reduce ? 1 : Math.min(1, titleP + 0.14); }
     E = sstep(clamp(Et / 0.85)); for (const l of extras) l.g = clamp((E - l.delay) / 0.5);
+    // Openings left behind close where they are.
+    fades = fades.filter((f) => (f.s *= 0.8) > 0.01);
+    const swept = !reduce && lastMx >= 0 && Math.abs(mx - lastMx) > 320 * (t - lastT); lastMx = mx; lastT = t; // Moving fast along the string opens nothing until the cursor settles.
     if (mode === "home") {
       // tx is where the lines part: under the cursor, or on a word's own place once the cursor reaches it.
       let T2 = 0, want = armed >= 0 ? armed : kbZone, tx = want >= 0 ? zx[want] : -1; const now = performance.now() / 1000;
       if (want >= 0) T2 = 1;
-      else if (inside && mx > W * 0.08 && mx < W * 0.92) { const v = clamp(1 - (Math.abs(my - H / 2) - 12) / 33); if (v > 0) { T2 = v; want = zoneAt(mx); tx = want >= 0 ? zx[want] : mx; } }
+      else if (inside && mx > W * 0.08 && mx < W * 0.92) { const v = clamp(1 - (Math.abs(my - H / 2) - 12) / 33); if (v > 0 && !swept) { T2 = v; want = zoneAt(mx); tx = want >= 0 ? zx[want] : mx; } }
       if (!T2 && !inside && !reduce && now - lastMove > 6) { if (!peek && t > nextPeek) { peek = { i: Math.floor(Math.random() * NAV.length), t0: t }; nextPeek = t + 9 + Math.random() * 5; } if (peek) { if (t - peek.t0 < 1.8) { if (S < 0.05 || zone === peek.i) { want = peek.i; tx = zx[want]; T2 = 0.5; } } else peek = null; } }
+      // Too far to follow: this opening closes in place and a new one begins there, instead of sliding across.
+      if (tx >= 0 && !reduce && S >= 0.03 && Math.abs(tx - lx) > sg * 1.2) { fades = [...fades, { x: lx, sg, s: S }].slice(-4); S = 0; }
       if (tx >= 0) { const go = reduce || S < 0.03 ? 1 : armed >= 0 ? 0.6 : 0.35; lx += (tx - lx) * go; sg += ((want >= 0 ? zs[want] : Math.max(56, Math.min(84, W * 0.055))) - sg) * go; }
       S = reduce ? T2 : S + (T2 - S) * (T2 > S ? 0.3 : 0.2);
       if (want !== zone && P <= 0.02) { zone = want; P = 0; }
