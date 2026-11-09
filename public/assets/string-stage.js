@@ -11,7 +11,7 @@
   const ctx = cv.getContext("2d");
   const body = document.body;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const FPS = 8, K = 12, SEG = 7, TOP = 34;
+  const FPS = 8, K = 12, SEG = 7, TOP = 34, TILE = 256;
 
   let content = { navigation: [] };
   try { content = JSON.parse(document.getElementById("portal-content-data").textContent); } catch {}
@@ -74,16 +74,30 @@
     if (words[w]) return words[w];
     if (![...w].every((ch) => GL[ch])) return (words[w] = { text: w, pts: [], cuts: [], w: w.length * 10, marks: [] });
     // The pen lifts between words: each one is its own stroke, and "cuts" marks where a new stroke begins.
-    let ox = 0, d = ""; const marks = [], pts = [], cuts = [];
-    const flush = () => { if (!d) return; if (pts.length) cuts.push(pts.length); pts.push(...samplePath(d, 1)); d = ""; };
+    let ox = 0, d = "", li = 0; const marks = [], pts = [], cuts = [];
+    const ws = [...w].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 9973, 7);
+    const drift = (x) => 0.9 * noise(x * 0.045 + ws, 3) + 0.35 * noise(x * 0.16 + ws, 5);
+    // The hand is not a machine: corners are rounded off and the line wavers a little along its way.
+    const soften = (a) => {
+      const n = a.length, k = [1, 2, 3, 2, 1];
+      return a.map((p, i) => {
+        if (i < 2 || i > n - 3) return [p[0], p[1] + drift(p[0])];
+        let x = 0, y = 0; for (let j = -2; j <= 2; j++) { x += a[i + j][0] * k[j + 2]; y += a[i + j][1] * k[j + 2]; }
+        return [x / 9 + 0.3 * noise(i * 0.11 + ws, 1), y / 9 + drift(x / 9) + 0.3 * noise(i * 0.09 + ws, 2)];
+      });
+    };
+    const flush = () => { if (!d) return; if (pts.length) cuts.push(pts.length); pts.push(...soften(samplePath(d, 1))); d = ""; };
     for (const ch of w) {
-      if (ch === " ") { flush(); ox += GL[" "][0]; continue; }
-      const g = GL[ch];
-      const part = g[1].replace(/(-?\d+\.?\d*),(-?\d+\.?\d*)/g, (_, x, y) => `${(+x + ox).toFixed(2)},${(+y).toFixed(2)}`);
+      if (ch === " ") { flush(); ox += GL[" "][0] * (0.9 + 0.3 * hash(ws, li++)); continue; }
+      const g = GL[ch], r = (k) => hash(ws + li * 7.3, k) - 0.5;
+      // Each letter gets its own width, height and lean; tall strokes vary most.
+      const sx = 1 + 0.16 * r(1), sy = 1 + 0.14 * r(2), lean = 0.17 + 0.1 * r(3), tall = 1 + 0.12 * r(4);
+      const tx = (x, y) => ox + x * sx - y * lean, ty = (y) => y * sy * (y < -11 || y > 2 ? tall : 1);
+      const part = g[1].replace(/(-?\d+\.?\d*),(-?\d+\.?\d*)/g, (_, x, y) => `${tx(+x, +y).toFixed(2)},${ty(+y).toFixed(2)}`);
       d += d ? part.replace(/^M/, " L") : part;
-      if (g[2]) marks.push({ dot: [g[2][0] + ox, g[2][1]] });
-      if (g[3]) marks.push({ bar: [g[3][0] + ox, g[3][1], g[3][2] + ox, g[3][3]] });
-      ox += g[0];
+      if (g[2]) marks.push({ dot: [tx(g[2][0], g[2][1]) + 1.2 * r(5) + 0.6, ty(g[2][1]) + r(6)] });
+      if (g[3]) marks.push({ bar: [tx(g[3][0], g[3][1]) - 0.5 + r(7), ty(g[3][1]) + 0.8 * r(8), tx(g[3][2], g[3][3]) + 0.8 + r(9), ty(g[3][3]) + 0.8 * r(10)] });
+      ox += g[0] * sx; li++;
     }
     flush();
     return (words[w] = { pts, cuts, w: ox, marks });
@@ -99,7 +113,7 @@
     const o = document.createElement("canvas"); o.width = o.height = size; const g = o.getContext("2d"); fill(g, size); if (!paperTile) paperTile = o; return ctx.createPattern(o, "repeat");
   }
   function buildPatterns() {
-    paperPat = makePattern(256, (g, s) => {
+    paperPat = makePattern(TILE, (g, s) => {
       g.fillStyle = "#fefefc"; g.fillRect(0, 0, s, s);
       const im = g.getImageData(0, 0, s, s), p = im.data;
       for (let i = 0; i < p.length; i += 4) { const n = (Math.random() - 0.5) * 6; p[i] += n; p[i + 1] += n; p[i + 2] += n - 0.5; }
@@ -405,7 +419,7 @@
     const panel = currentPanel(); if (!panel) return;
     dctx.save(); dctx.beginPath(); dctx.rect(0, TOP + 16, W, H - TOP - 16 - 44); dctx.clip();
     const vis = (r) => r.y < H && r.y + r.h > 0;
-    panel.querySelectorAll(".blog-row:not([hidden]), .search-result-card, .managed-card").forEach((el, i) => { const r = rect(el); if (vis(r) && r.w) line(r.x, r.y + r.h, r.x + r.w, r.y + r.h, 60 + i * 5, tick, 0.7, 0.55 * (+getComputedStyle(el).opacity || 1)); });
+    panel.querySelectorAll(".blog-row:not([hidden]), .search-result-card, .managed-card, .archive-item").forEach((el, i) => { const r = rect(el); if (vis(r) && r.w) line(r.x, r.y + r.h, r.x + r.w, r.y + r.h, 60 + i * 5, tick, 0.7, 0.55 * (+getComputedStyle(el).opacity || 1)); });
     const lost = panel.dataset.panel === "not-found";
     if (lost !== tangleOn) { tangleOn = lost; tangleP = reduce ? 1 : 0; }
     if (lost) tangle(panel, tick);
@@ -490,6 +504,7 @@
     for (const c of [cv, linesCv, decoCv]) { c.width = Math.round(W * D); c.height = Math.round(H * D); }
     cv.style.width = `${W}px`; cv.style.height = `${H}px`;
     layoutLines(); for (const l of extras) l.g = clamp((E - l.delay) / 0.5);
+    try { paperPat.setTransform(new DOMMatrix().scale(D)); } catch {}
     forceDraw = true;
   }
 
@@ -566,7 +581,7 @@
 
   // ---------- start ----------
   buildPatterns(); resize();
-  try { body.style.backgroundImage = `url(${paperTile.toDataURL()})`; body.style.backgroundSize = "256px 256px"; } catch {}
+  try { body.style.backgroundImage = `url(${paperTile.toDataURL()})`; body.style.backgroundSize = `${TILE}px ${TILE}px`; } catch {}
   const first = currentPanel();
   if (!isHomePanel(first)) { mode = "page"; Et = 1; E = 1; title = titleFor(first); titleP = 1; }
   syncBody();

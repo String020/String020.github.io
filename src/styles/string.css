@@ -815,3 +815,57 @@ body.string-home .app-shell {
 .string-plain .blog-row {
   border-bottom: 0;
 }
+
+/* ---------- one voice ----------
+   Outside written articles everything is set in the regular weight: emphasis comes from size, ink and the pencil, not from bold. */
+body.string-site:not(.is-editing) .content-stage :not(strong):not(b):not(.article-body *):not(.rich-content *),
+.string-plain .blog-shell :not(strong):not(b) {
+  font-weight: 400;
+}
+
+/* Small labels (dates, badges, counts) share one style. */
+.string-site time,
+.string-site .managed-card > span,
+.string-site .metadata-row,
+.string-site .article-meta,
+.string-plain .archive-item time {
+  color: var(--ash);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.string-site .article-meta {
+  white-space: normal;
+}
+
+.string-site .blog-row {
+  grid-template-columns: 104px minmax(0, 1fr);
+}
+
+.string-site .blog-row time {
+  font-size: 11px;
+  padding-top: 8px;
+}
+
+/* The timeline: years as quiet headings, rows ruled in pencil by the canvas. */
+.string-plain .archive-year {
+  border-top: 0;
+  padding: 14px 0 6px;
+}
+
+.string-plain .archive-year h2 {
+  color: var(--ash);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  margin: 0 0 4px;
+}
+
+.string-plain .archive-item {
+  padding: 12px 0 14px;
+}
+
+.string-plain .back-link {
+  color: var(--ash);
+}
