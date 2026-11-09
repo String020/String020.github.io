@@ -72,9 +72,12 @@
   // Words with letters outside the set fall back to plain italic text.
   function word(w) {
     if (words[w]) return words[w];
-    if (![...w].every((ch) => GL[ch])) return (words[w] = { text: w, pts: [], w: w.length * 10, marks: [] });
-    let ox = 0, d = ""; const marks = [];
+    if (![...w].every((ch) => GL[ch])) return (words[w] = { text: w, pts: [], cuts: [], w: w.length * 10, marks: [] });
+    // The pen lifts between words: each one is its own stroke, and "cuts" marks where a new stroke begins.
+    let ox = 0, d = ""; const marks = [], pts = [], cuts = [];
+    const flush = () => { if (!d) return; if (pts.length) cuts.push(pts.length); pts.push(...samplePath(d, 1)); d = ""; };
     for (const ch of w) {
+      if (ch === " ") { flush(); ox += GL[" "][0]; continue; }
       const g = GL[ch];
       const part = g[1].replace(/(-?\d+\.?\d*),(-?\d+\.?\d*)/g, (_, x, y) => `${(+x + ox).toFixed(2)},${(+y).toFixed(2)}`);
       d += d ? part.replace(/^M/, " L") : part;
@@ -82,7 +85,8 @@
       if (g[3]) marks.push({ bar: [g[3][0] + ox, g[3][1], g[3][2] + ox, g[3][3]] });
       ox += g[0];
     }
-    return (words[w] = { pts: samplePath(d, 1), w: ox, marks });
+    flush();
+    return (words[w] = { pts, cuts, w: ox, marks });
   }
 
   // ---------- canvases ----------
@@ -142,8 +146,8 @@
   function drawWord(w, x, y, s, G, sd, tick, lw, al) {
     const wd = word(w);
     if (wd.text) { ink.save(); ink.globalAlpha = (al == null ? 1 : al) * clamp(G * 1.5); ink.fillStyle = "#2a2a2d"; ink.font = `italic ${Math.round(15 * s)}px Georgia, serif`; ink.textBaseline = "alphabetic"; ink.fillText(wd.text, x, y); ink.restore(); return ink.measureText ? wd.w * s : 0; }
-    const n = Math.max(2, Math.floor(wd.pts.length * G));
-    pencil(wd.pts.slice(0, n).map((p, k) => [x + p[0] * s + (reduce ? 0 : noise(k * 0.06 + sd, tick * 1.3) * 0.5), y + p[1] * s + (reduce ? 0 : noise(k * 0.05 + sd + 9, tick * 1.1) * 0.6)]), lw, sd, tick, true, al);
+    const n = Math.max(2, Math.floor(wd.pts.length * G)), all = wd.pts.slice(0, n).map((p, k) => [x + p[0] * s + (reduce ? 0 : noise(k * 0.06 + sd, tick * 1.3) * 0.5), y + p[1] * s + (reduce ? 0 : noise(k * 0.05 + sd + 9, tick * 1.1) * 0.6)]);
+    [0, ...wd.cuts].forEach((a, i) => { if (a < n) pencil(all.slice(a, wd.cuts[i] === undefined ? n : Math.min(n, wd.cuts[i])), lw, sd + i, tick, true, al); });
     if (G > 0.98) for (const m of wd.marks) {
       if (m.dot) { ink.globalAlpha = 0.8 * (al == null ? 1 : al); ink.fillStyle = "#2a2a2d"; ink.beginPath(); ink.arc(x + m.dot[0] * s, y + m.dot[1] * s, 0.6 + 0.5 * s, 0, 6.28); ink.fill(); ink.globalAlpha = 1; }
       if (m.bar) line(x + m.bar[0] * s, y + m.bar[1] * s, x + m.bar[2] * s, y + m.bar[3] * s, sd + 3, tick, lw * 0.9, al);
