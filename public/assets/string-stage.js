@@ -55,7 +55,9 @@
     u: [12, "M0,0 C1,-4 2,-8 2,-10 L2,-3 C2,0 6,0 8,-4 L8,-10 L8,-2 C8,0 10,0 12,0"],
     v: [13, "M0,0 C1,-4 2,-8 2,-10 C3,-6 4,-2 6,0 C7,-3 9,-8 10,-10 C11,-6 12,-1 13,0"],
     w: [16, "M0,0 C1,-4 2,-8 2,-10 L2,-3 C2,0 6,0 7,-4 L7,-6 L7,-3 C7,0 11,0 12,-4 L12,-10 C13,-7 14,-2 16,0"],
+    x: [11, "M0,0 C1,-3 1,-8 2,-10 C4,-8 7,-3 9,-1 C10,0 10,0 11,0", null, [2, -0.5, 9, -10]],
     y: [11, "M0,0 C1,-4 2,-8 2,-10 L2,-3 C2,0 6,0 8,-4 L8,-10 L8,4 C8,10 2,11 2,7 C2,4 7,1 11,0"],
+    z: [11, "M0,0 C0.5,-3 1,-8 1.5,-10 C4,-10.7 6,-9.5 8.5,-10 L2,-0.6 C4,-1.3 7,0.1 9,-0.2 L11,0"],
     " ": [7, "M0,0 L7,0"],
   };
   const words = {};
@@ -252,7 +254,7 @@
   let S = 0, P = 0, lx = 0, sg = 60, fades = [], lastMx = -1, lastT = 0, zone = -1, mx = -1, my = -1, inside = false, touchLock = false, peek = null, nextPeek = 7, lastMove = -99, nextGust = 1;
   let title = "", titleP = 1, bandNavP = 0, navBoxes = [], circleEl = null, circleP = 1, hoverEl = null, hoverP = 0;
   let lastTick = -1, drawTick = 0, T = 0, needDeco = true, forceDraw = true, lastSig = "", cost = 0;
-  let armed = -1, kbZone = -1, kbBand = -1, lastY = null, curToc = null, tocP = 1;
+  let tangleP = 0, tangleOn = false, armed = -1, kbZone = -1, kbBand = -1, lastY = null, curToc = null, tocP = 1;
   const navLinks = Array.from(document.querySelectorAll(".string-nav a"));
 
   const currentPanel = () => (plain ? root : track.querySelector("[data-panel].is-current"));
@@ -376,6 +378,22 @@
     pencil(pts, 1.15, sd, tick, false, 0.9);
   }
   const rect = (el) => { const r = el.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; };
+  // The lost page: the lines that should run straight across wind into a knot instead, and keep slowly turning.
+  function tangle(panel, tick) {
+    const anchor = panel.querySelector(".blog-tools") || panel.lastElementChild; if (!anchor) return;
+    const a = anchor.getBoundingClientRect(), s = slotRect(), x0 = Math.max(10, s.x - 70), x1 = Math.min(W - 10, s.x + 690), cy = a.bottom + 140, n = 520;
+    for (let k = 0; k < 6; k++) {
+      const turns = 2 + hash(k, 201) * 3, R0 = 30 + hash(k, 204) * 36, wd = 0.09 + 0.06 * hash(k, 205), off = (hash(k, 207) - 0.5) * 9, side = k % 2 ? 1 : -1;
+      const ph = hash(k, 202) * 6.28 + (reduce ? 0 : T * (0.05 + 0.06 * hash(k, 203)) * side), c0 = 0.5 + (hash(k, 208) - 0.5) * 0.05, pts = [];
+      const m = Math.max(2, Math.round(n * clamp(tangleP * 1.25 - k * 0.05)));
+      for (let i = 0; i <= m; i++) {
+        const u = i / n, d = (u - c0) / wd, b = Math.exp(-d * d), ang = d * turns * 1.6 + ph, R1 = R0 * b * (1 + 0.18 * noise(d * 1.3 + k * 9, 4));
+        pts.push([x0 + (x1 - x0) * u + R1 * Math.sin(ang) * 1.3 + (reduce ? 0 : 0.5 * noise(i * 0.05 + k * 7, tick * 1.6)),
+          cy + off + 1.6 * noise(u * 9 + k * 3, 8) + R1 * Math.cos(ang) * 0.85 * side + (reduce ? 0 : 0.6 * noise(i * 0.04 + k * 5, tick * 1.9))]);
+      }
+      pencil(pts, k < 2 ? 1.7 : k < 4 ? 1.15 : 0.8, 300 + k * 7, tick, false, 0.92);
+    }
+  }
   function renderDeco(tick) {
     ink = dctx; dctx.setTransform(D, 0, 0, D, 0, 0); dctx.clearRect(0, 0, W, H);
     if ((mode === "page" || mode === "enterPlain") && title) { const s = slotRect(); dctx.save(); dctx.beginPath(); dctx.rect(0, TOP + 16, W, H - TOP - 60); dctx.clip(); drawWord(title, s.x, s.y, 1.9, titleP, 7, tick, 1.9); dctx.restore(); }
@@ -384,6 +402,11 @@
     dctx.save(); dctx.beginPath(); dctx.rect(0, TOP + 16, W, H - TOP - 16 - 44); dctx.clip();
     const vis = (r) => r.y < H && r.y + r.h > 0;
     panel.querySelectorAll(".blog-row:not([hidden]), .search-result-card, .managed-card").forEach((el, i) => { const r = rect(el); if (vis(r) && r.w) line(r.x, r.y + r.h, r.x + r.w, r.y + r.h, 60 + i * 5, tick, 0.7, 0.55 * (+getComputedStyle(el).opacity || 1)); });
+    const lost = panel.dataset.panel === "not-found";
+    if (lost !== tangleOn) { tangleOn = lost; tangleP = reduce ? 1 : 0; }
+    if (lost) tangle(panel, tick);
+    // The comments begin under a pencil line, with their heading written by hand.
+    panel.querySelectorAll(".comments > h2").forEach((el) => { const r = rect(el); if (vis(r) && r.w) { line(r.x, r.y - 16, r.x + r.w, r.y - 15, 47, tick, 0.9, 0.7); drawWord("comments", r.x, r.y + r.h - 8, 1.2, 1, 53, tick, 1.25, 0.92); } });
     const on = panel.querySelector(".string-filters button.is-on");
     if (on) { if (on !== circleEl) { circleEl = on; circleP = reduce ? 1 : 0; } ellipse(rect(on), on.textContent.length * 3.1, tick, circleP); }
     panel.querySelectorAll(".string-search input, .portal-search-box").forEach((el, i) => { const r = rect(el); if (vis(r) && r.w) line(r.x, r.y + r.h, r.x + r.w, r.y + r.h + 1, 41 + i, tick, 0.9, 0.8); });
@@ -438,7 +461,7 @@
     } else { S = reduce ? 0 : S * 0.7; }
     const overBand = mode === "page" && (kbBand >= 0 || (my >= 0 && (my < TOP + 18 || (my < 72 && bandNavP > 0))));
     bandNavP = reduce ? (overBand ? 1 : 0) : overBand ? Math.min(1, bandNavP + 0.12) : Math.max(0, bandNavP - 0.25);
-    circleP = reduce ? 1 : Math.min(1, circleP + 0.2); tocP = reduce ? 1 : Math.min(1, tocP + 0.34); hoverP = hoverEl ? (reduce ? 1 : Math.min(1, hoverP + 0.34)) : 0;
+    tangleP = reduce ? 1 : Math.min(1, tangleP + 0.045); circleP = reduce ? 1 : Math.min(1, circleP + 0.2); tocP = reduce ? 1 : Math.min(1, tocP + 0.34); hoverP = hoverEl ? (reduce ? 1 : Math.min(1, hoverP + 0.34)) : 0;
     if (mode !== "home") body.classList.toggle("string-pointer", mode === "page" && bandNavP > 0.3 && !!navHit(mx, my));
   }
   function frame(now) {

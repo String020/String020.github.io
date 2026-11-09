@@ -1,52 +1,60 @@
 /*!
- * Giscus theme for string020.github.io (light).
- * Syntax colors are taken from giscus's "light" theme, based on GitHub Primer.
+ * Giscus theme for string020.github.io: pencil on paper. Self-contained (no @import).
+ * Syntax colors are taken from the "light" theme of giscus, based on GitHub Primer.
  * MIT License, Copyright (c) 2018 GitHub Inc. https://github.com/primer/primitives/blob/main/LICENSE
  */
-@import url("base.css");
-
 main {
   color-scheme: light;
-  --color-fg-default: #171717;
-  --color-fg-muted: #616161;
-  --color-fg-subtle: #9c9a95;
-  --color-canvas-default: #f7f6f18c;
-  --color-canvas-overlay: #f7f6f1;
-  --color-canvas-inset: #f7f6f1b3;
-  --color-canvas-subtle: #17171708;
-  --color-border-default: #1717171f;
-  --color-border-muted: #17171714;
-  --color-neutral-muted: #1717171a;
-  --color-btn-text: #313131;
-  --color-btn-bg: #1717170d;
+  --pencil-rule: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='10' viewBox='0 0 800 10' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-5%25' y='-300%25' width='110%25' height='700%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.6' numOctaves='2' seed='3' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='2.6' xChannelSelector='R' yChannelSelector='G' result='d'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='1' seed='7' result='g'/%3E%3CfeColorMatrix in='g' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 2.9' result='m'/%3E%3CfeComposite in='d' in2='m' operator='in'/%3E%3C/filter%3E%3Cg filter='url%28%23r%29' fill='none' stroke='%232a2a2d' stroke-linecap='round'%3E%3Cpath d='M4,5.4 C130,3.6 250,6.6 400,4.8 S670,6.2 796,4.4' stroke-width='1.0' opacity='0.55' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M14,6 C210,5 430,6.6 780,5.2' stroke-width='0.6' opacity='0.35' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E");
+  --pencil-write: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='800' height='10' viewBox='0 0 800 10' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-5%25' y='-300%25' width='110%25' height='700%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.6' numOctaves='2' seed='11' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='2.6' xChannelSelector='R' yChannelSelector='G' result='d'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='1' seed='15' result='g'/%3E%3CfeColorMatrix in='g' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 2.9' result='m'/%3E%3CfeComposite in='d' in2='m' operator='in'/%3E%3C/filter%3E%3Cg filter='url%28%23r%29' fill='none' stroke='%232a2a2d' stroke-linecap='round'%3E%3Cpath d='M3,5.2 C110,3.8 270,6.4 410,4.9 S650,6.3 797,4.6' stroke-width='1.2' opacity='0.8' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M9,6.1 C190,4.9 420,6.8 786,5.5' stroke-width='0.7' opacity='0.45' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M40,4.4 C300,5.6 520,4 760,5' stroke-width='0.5' opacity='0.3' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E");
+  --pencil-under: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='8' viewBox='0 0 120 8' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-5%25' y='-300%25' width='110%25' height='700%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.6' numOctaves='2' seed='7' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='1.2' xChannelSelector='R' yChannelSelector='G' result='d'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='1' seed='11' result='g'/%3E%3CfeColorMatrix in='g' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 2.9' result='m'/%3E%3CfeComposite in='d' in2='m' operator='in'/%3E%3C/filter%3E%3Cg filter='url%28%23r%29' fill='none' stroke='%232a2a2d' stroke-linecap='round'%3E%3Cpath d='M2,4.4 C30,3.2 70,5.4 118,3.8' stroke-width='1.3' opacity='0.9' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M6,5 C40,4.2 80,5.6 114,4.6' stroke-width='0.7' opacity='0.5' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E");
+  --pencil-side: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='400' viewBox='0 0 10 400' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-5%25' y='-300%25' width='110%25' height='700%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.6' numOctaves='2' seed='5' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='2.6' xChannelSelector='R' yChannelSelector='G' result='d'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='1' seed='9' result='g'/%3E%3CfeColorMatrix in='g' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 2.9' result='m'/%3E%3CfeComposite in='d' in2='m' operator='in'/%3E%3C/filter%3E%3Cg filter='url%28%23r%29' fill='none' stroke='%232a2a2d' stroke-linecap='round'%3E%3Cpath d='M5.2,3 C3.8,90 6.4,210 4.8,300 S5.8,370 4.6,397' stroke-width='1.0' opacity='0.5' vector-effect='non-scaling-stroke'/%3E%3Cpath d='M5.8,12 C4.9,140 6.2,280 5.3,388' stroke-width='0.6' opacity='0.3' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E");
+  --pencil-ring: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='40' viewBox='0 0 100 40' preserveAspectRatio='none'%3E%3Cfilter id='r' x='-5%25' y='-300%25' width='110%25' height='700%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.035 0.6' numOctaves='2' seed='9' result='n'/%3E%3CfeDisplacementMap in='SourceGraphic' in2='n' scale='1.0' xChannelSelector='R' yChannelSelector='G' result='d'/%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='1' seed='13' result='g'/%3E%3CfeColorMatrix in='g' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -4 2.9' result='m'/%3E%3CfeComposite in='d' in2='m' operator='in'/%3E%3C/filter%3E%3Cg filter='url%28%23r%29' fill='none' stroke='%232a2a2d' stroke-linecap='round'%3E%3Cpath d='M12,22 C10,9 34,3 54,4 C78,5 95,11 93,22 C91,33 68,37 46,36 C24,35 8,31 11,18 C12,13 18,9 26,7' stroke-width='1.1' opacity='0.75' vector-effect='non-scaling-stroke'/%3E%3C/g%3E%3C/svg%3E");
+  font-family: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", Georgia, serif;
+  --ink: #2a2a2d;
+  --muted: #6b6861;
+  --ash: #75716a;
+  --rule: #2a2a2d24;
+  --color-fg-default: var(--ink);
+  --color-fg-muted: var(--muted);
+  --color-fg-subtle: var(--ash);
+  --color-canvas-default: #0000;
+  --color-canvas-overlay: #fefefc;
+  --color-canvas-inset: #0000;
+  --color-canvas-subtle: #2a2a2d08;
+  --color-border-default: var(--rule);
+  --color-border-muted: #2a2a2d14;
+  --color-neutral-muted: #2a2a2d14;
+  --color-btn-text: var(--muted);
+  --color-btn-bg: #0000;
   --color-btn-border: #0000;
   --color-btn-shadow: none;
   --color-btn-inset-shadow: none;
-  --color-btn-hover-bg: #17171717;
+  --color-btn-hover-bg: #0000;
   --color-btn-hover-border: #0000;
-  --color-btn-active-bg: #1717171f;
+  --color-btn-active-bg: #0000;
   --color-btn-active-border: #0000;
-  --color-btn-selected-bg: #17171714;
-  --color-btn-primary-text: #f7f6f1;
-  --color-btn-primary-bg: #171717;
-  --color-btn-primary-border: #171717;
+  --color-btn-selected-bg: #0000;
+  --color-btn-primary-text: var(--ink);
+  --color-btn-primary-bg: #0000;
+  --color-btn-primary-border: #0000;
   --color-btn-primary-shadow: none;
   --color-btn-primary-inset-shadow: none;
-  --color-btn-primary-hover-bg: #313131;
-  --color-btn-primary-hover-border: #313131;
-  --color-btn-primary-selected-bg: #000;
+  --color-btn-primary-hover-bg: #0000;
+  --color-btn-primary-hover-border: #0000;
+  --color-btn-primary-selected-bg: #0000;
   --color-btn-primary-selected-shadow: none;
-  --color-btn-primary-disabled-text: #f7f6f1b3;
-  --color-btn-primary-disabled-bg: #1717174d;
+  --color-btn-primary-disabled-text: #a5a199;
+  --color-btn-primary-disabled-bg: #0000;
   --color-btn-primary-disabled-border: #0000;
-  --color-action-list-item-default-hover-bg: #17171712;
-  --color-segmented-control-bg: #1717170d;
-  --color-segmented-control-button-bg: #f7f6f1;
-  --color-segmented-control-button-selected-border: #9c9a95;
-  --color-accent-fg: #171717;
-  --color-accent-emphasis: #171717;
-  --color-accent-muted: #17171740;
-  --color-accent-subtle: #1717170f;
+  --color-action-list-item-default-hover-bg: #2a2a2d0f;
+  --color-segmented-control-bg: #0000;
+  --color-segmented-control-button-bg: #0000;
+  --color-segmented-control-button-selected-border: #0000;
+  --color-accent-fg: var(--ink);
+  --color-accent-emphasis: var(--ink);
+  --color-accent-muted: #2a2a2d40;
+  --color-accent-subtle: #2a2a2d0f;
   --color-success-fg: #3f7f53;
   --color-attention-fg: #8a6a1f;
   --color-attention-muted: #8a6a1f66;
@@ -55,8 +63,8 @@ main {
   --color-danger-muted: #9d332e66;
   --color-danger-subtle: #9d332e14;
   --color-primer-shadow-inset: none;
-  --color-scale-gray-1: #1717170f;
-  --color-scale-blue-1: #1717171f;
+  --color-scale-gray-1: #2a2a2d0f;
+  --color-scale-blue-1: #2a2a2d1f;
   --color-social-reaction-bg-hover: var(--color-scale-gray-1);
   --color-social-reaction-bg-reacted-hover: var(--color-scale-blue-1);
   --color-prettylights-syntax-comment: #6e7781;
@@ -93,4 +101,267 @@ main {
 
 main .gsc-loading-image {
   background-image: url(https://github.githubassets.com/images/mona-loading-default.gif);
+  filter: grayscale(1);
+}
+
+/* Primer utilities inside the widget use !important, so overrides that touch them do too. */
+
+/* Reactions: small marks in a row, no pills. */
+.gsc-reactions-count {
+  display: none;
+}
+
+.gsc-reactions > div {
+  justify-content: flex-start !important;
+  margin-top: 0 !important;
+}
+
+.gsc-reactions-button,
+.gsc-social-reaction-summary-item,
+.gsc-direct-reaction-button {
+  background: transparent !important;
+  border-color: transparent !important;
+  border-radius: 0 !important;
+  color: var(--muted) !important;
+}
+
+.gsc-social-reaction-summary-item.has-reacted {
+  background: var(--pencil-under) no-repeat bottom / 100% 6px !important;
+  color: var(--ink) !important;
+}
+
+.gsc-reactions-popover {
+  border: 1px solid var(--rule) !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+
+/* Header: a quiet count, like the month labels of the blog list. */
+.gsc-header {
+  padding-bottom: 6px;
+}
+
+.gsc-comments-count,
+.gsc-comments-count-separator {
+  color: var(--ash);
+  font-size: 11px;
+  font-weight: normal;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.gsc-context a,
+.link-secondary {
+  color: var(--ash) !important;
+}
+
+/* Comments: no cards. Each one sits on the paper above a ruled line. */
+.gsc-comment > div,
+.gsc-comment .color-bg-primary,
+.gsc-comment .color-bg-tertiary {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.gsc-comment {
+  background: var(--pencil-rule) no-repeat bottom / 100% 10px;
+  margin: 0 !important;
+  padding: 10px 0 14px;
+}
+
+.gsc-comment-header,
+.gsc-comment-content,
+.gsc-comment-footer {
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.gsc-comment-author-avatar img,
+.gsc-reply-author-avatar img,
+.gsc-comment-box img {
+  border-radius: 50%;
+  filter: grayscale(1);
+}
+
+.gsc-comment-author .link-primary,
+.gsc-reply-author .link-primary {
+  color: var(--ink) !important;
+  font-weight: normal !important;
+}
+
+.gsc-comment-header .link-secondary,
+.gsc-comment-edited,
+.gsc-reply-header .link-secondary {
+  font-size: 12px;
+}
+
+.gsc-comment-author .border,
+.gsc-reply-author .border,
+.gsc-comment-author-association {
+  background: var(--pencil-ring) no-repeat center / 100% 100%;
+  border: 0 !important;
+  color: var(--ash) !important;
+  font-size: 11px !important;
+  font-style: italic;
+  font-weight: normal !important;
+  padding: 3px 10px !important;
+}
+
+.gsc-comment-content {
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.markdown a {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Replies hang from a single line down the left, like a margin note. */
+.gsc-replies {
+  background: transparent !important;
+  background: var(--pencil-side) no-repeat left / 10px 100% !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin: 2px 0 6px 10px;
+  padding: 0 0 0 6px !important;
+}
+
+.gsc-reply {
+  background: transparent !important;
+}
+
+.gsc-reply-content {
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.gsc-tl-line {
+  display: none;
+}
+
+.gsc-reply-box {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+}
+
+.gsc-reply-box .form-control {
+  background: var(--pencil-rule) no-repeat bottom / 100% 10px !important;
+  border: 0 !important;
+  padding-bottom: 10px !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  color: var(--ash) !important;
+  font-style: italic;
+}
+
+/* Writing: a ruled line to write on, and words instead of buttons. */
+.gsc-comment-box {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  margin-top: 14px;
+}
+
+.gsc-comment-box-tabs {
+  background: transparent !important;
+  border-bottom: 0 !important;
+  padding: 0;
+}
+
+.gsc-comment-box-tabs > div:first-child {
+  display: flex;
+  gap: 14px;
+  margin: 0 !important;
+}
+
+.gsc-comment-box-tabs > div:first-child > button {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  color: var(--ash) !important;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: normal !important;
+  margin: 0 !important;
+  padding: 2px 0 6px !important;
+}
+
+.gsc-comment-box-tabs > div:first-child > button.color-bg-canvas {
+  background: var(--pencil-under) no-repeat bottom / 100% 6px !important;
+  color: var(--ink) !important;
+}
+
+.gsc-comment-box-md-toolbar {
+  opacity: 0.7;
+}
+
+.gsc-comment-box-main {
+  padding: 8px 0;
+}
+
+.gsc-comment-box-textarea,
+.gsc-comment-box-preview {
+  background: var(--pencil-write) no-repeat bottom / 100% 10px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.8;
+  padding: 6px 2px 12px !important;
+  resize: none;
+}
+
+.gsc-comment-box-textarea::placeholder {
+  color: var(--ash);
+  font-style: italic;
+}
+
+.gsc-comment-box-textarea:focus {
+  box-shadow: none !important;
+  outline: none;
+}
+
+.gsc-comment-box-textarea-extras {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding-left: 0 !important;
+}
+
+.gsc-comment-box-bottom {
+  padding: 0 0 8px;
+}
+
+.gsc-comment-box-markdown-hint {
+  color: var(--ash) !important;
+  font-size: 12px;
+}
+
+.btn {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: normal !important;
+  padding: 3px 1px 7px !important;
+}
+
+.btn:hover:not(:disabled) {
+  color: var(--ink) !important;
+}
+
+.btn-primary {
+  background: var(--pencil-under) no-repeat bottom / 100% 6px !important;
+  font-style: italic;
+  margin-left: 14px;
+}
+
+.btn-primary:disabled {
+  background: transparent !important;
 }
