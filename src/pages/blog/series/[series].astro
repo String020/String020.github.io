@@ -4,6 +4,7 @@ import { site } from "../../../data/site";
 import { formatDate, getAllSeries, getCategory, getReadingStats, getSeries, isPublished, slugifyTaxonomy, sortPostsByDateOnly } from "../../../lib/blog";
 import { backgroundStyle } from "../../../lib/images";
 import ThemeInit from "../../../components/ThemeInit.astro";
+import StringFrame from "../../../components/StringFrame.astro";
 import "../../../styles/global.css";
 import "../../../styles/blog-features.css";
 import "../../../styles/string.css";
@@ -73,5 +74,6 @@ const withBase = (path = "") => `${base}${path.replace(/^\/+/, "")}`;
         })}
       </section>
     </main>
+    <StringFrame title="series" />
   </body>
 </html>

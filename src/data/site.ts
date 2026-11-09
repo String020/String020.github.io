@@ -1,8 +1,8 @@
 export const site = {
-  title: "Str1ng Personal Portal",
-  description: "A personal portal with blog posts, archives, interest pages, profile pages, search, and future widgets.",
+  title: "string 弦",
+  description: "string (弦) is a personal site by String: blog posts, archives and notes.",
   brand: {
-    name: "Str1ng",
+    name: "string",
     initials: "S0",
   },
   profile: {
@@ -18,7 +18,7 @@ export const site = {
   },
   dashboard: {
     eyebrow: "String",
-    title: "Dashboard.",
+    title: "A personal site by String.",
     stats: [
       { value: "05", label: "Main sections" },
       { value: "02", label: "Blog posts" },

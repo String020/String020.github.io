@@ -4,7 +4,10 @@
 (() => {
   const cv = document.querySelector("[data-string-stage]");
   const track = document.querySelector("[data-track]");
-  if (!cv || !track || !cv.getContext) return;
+  if (!cv || !cv.getContext) return;
+  // Pages outside the portal have no panels: they get the bands and a written title, and real links.
+  const plain = !track, root = track || document.querySelector("main") || document.body;
+  const baseUrl = cv.dataset.base || document.body.dataset.portalBase || "/";
   const ctx = cv.getContext("2d");
   const body = document.body;
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -248,13 +251,14 @@
   let mode = "home", Et = 0, E = 0, navZone = -1, frozen = null, routeAt = null, internal = false;
   let S = 0, P = 0, lx = 0, sg = 60, fades = [], lastMx = -1, lastT = 0, zone = -1, mx = -1, my = -1, inside = false, touchLock = false, peek = null, nextPeek = 7, lastMove = -99, nextGust = 1;
   let title = "", titleP = 1, bandNavP = 0, navBoxes = [], circleEl = null, circleP = 1, hoverEl = null, hoverP = 0;
-  let lastTick = -1, drawTick = 0, T = 0, needDeco = true, forceDraw = true, lastSig = "";
+  let lastTick = -1, drawTick = 0, T = 0, needDeco = true, forceDraw = true, lastSig = "", cost = 0;
   let armed = -1, kbZone = -1, kbBand = -1, lastY = null, curToc = null, tocP = 1;
   const navLinks = Array.from(document.querySelectorAll(".string-nav a"));
 
-  const currentPanel = () => track.querySelector("[data-panel].is-current");
-  const isHomePanel = (p) => !p || p.dataset.panel === "home";
+  const currentPanel = () => (plain ? root : track.querySelector("[data-panel].is-current"));
+  const isHomePanel = (p) => !plain && (!p || p.dataset.panel === "home");
   function titleFor(panel) {
+    if (plain) return wordOf(cv.dataset.title);
     if (!panel) return "";
     if (panel.dataset.panel === "search") return "search";
     if (panel.dataset.panel === "not-found") return "lost";
@@ -263,13 +267,13 @@
     return item && item.kind !== "home" ? wordOf(item.label || item.title) : "";
   }
   function slotRect() {
-    const slot = currentPanel()?.querySelector(".string-title-slot") || track.querySelector(".string-title-slot");
+    const slot = currentPanel()?.querySelector(".string-title-slot") || root.querySelector(".string-title-slot");
     const r = slot ? slot.getBoundingClientRect() : { left: W * 0.12, top: 70, height: 76 };
     return { x: r.left, y: r.top + r.height - 18 };
   }
 
   // Every panel gets an empty slot where the section name is written.
-  track.querySelectorAll("[data-panel]").forEach((panel) => { if (!panel.querySelector(":scope > .string-title-slot")) { const s = document.createElement("div"); s.className = "string-title-slot"; s.setAttribute("aria-hidden", "true"); panel.prepend(s); } });
+  (plain ? [root] : track.querySelectorAll("[data-panel]")).forEach((panel) => { if (!panel.querySelector(":scope > .string-title-slot")) { const s = document.createElement("div"); s.className = "string-title-slot"; s.setAttribute("aria-hidden", "true"); panel.prepend(s); } });
 
   function syncBody() {
     const home = mode === "home" || mode === "exit";
@@ -281,7 +285,7 @@
       link.tabIndex = isHomePanel(panel) && link.dataset.zone === undefined ? -1 : 0; // "string" leads nowhere from the string itself.
     });
   }
-  function goRoute(route) { internal = true; try { window.portalRouter?.openRoute(route, true); } finally { internal = false; } syncBody(); }
+  function goRoute(route) { if (plain) { location.href = baseUrl + route; return; } internal = true; try { window.portalRouter?.openRoute(route, true); } finally { internal = false; } syncBody(); }
 
   function startEnter(i) {
     armed = -1;
@@ -305,6 +309,7 @@
   const nearString = (x, y) => Math.abs(y - H / 2) < 45 && x > W * 0.08 && x < W * 0.92;
   function startExit() {
     if (mode !== "page") return;
+    if (plain) { location.href = baseUrl; return; }
     const i = NAV.findIndex((n) => n.word === title);
     navZone = i >= 0 ? i : 0; zone = navZone; lx = zx[navZone] || W / 2; sg = zs[navZone] || 60;
     const wd = word(title), GS = 1.25, s = slotRect();
@@ -315,14 +320,15 @@
   }
 
   // Router changes that did not come from the string (links, back button) just move the bands.
-  new MutationObserver(() => {
+  const routeWatch = new MutationObserver(() => {
     if (internal) return;
     const panel = currentPanel(), home = isHomePanel(panel);
     if (!home) armed = -1;
     if (home && (mode === "page" || mode === "enter")) { mode = "home"; Et = reduce ? 0 : Math.min(Et, 1); frozen = null; if (!reduce) mode = "exitPlain"; }
     else if (!home) { const t = titleFor(panel); if (t !== title) { title = t; titleP = 0; } if (mode === "home" || mode === "exit" || mode === "exitPlain") { mode = reduce ? "page" : "enterPlain"; frozen = null; if (reduce) Et = 1; } }
     syncBody(); needDeco = true;
-  }).observe(track, { subtree: true, attributes: true, attributeFilter: ["class"] });
+  });
+  if (track) routeWatch.observe(track, { subtree: true, attributes: true, attributeFilter: ["class"] });
 
   // ---------- drawing ----------
   function drawTitle(tick) {
@@ -441,13 +447,15 @@
     const clock = Math.floor((now / 1000) * FPS);
     if (clock === lastTick) { if (needDeco) { renderDeco(drawTick); composite(); needDeco = false; } return; }
     if (!reduce && lastTick >= 0 && hash(clock, 99) < 0.16 && mode === "home") { lastTick = clock; return; }
+    // A resting page on a slow device redraws every other tick; anything in motion keeps the full rate.
+    if (!reduce && cost > 18 && clock % 2 && mode === "page" && !forceDraw && bandNavP === 0 && my > 72 && titleP === 1 && circleP === 1 && tocP === 1 && (!hoverEl || hoverP === 1)) { lastTick = clock; if (needDeco) { renderDeco(drawTick); composite(); needDeco = false; } return; }
     lastTick = clock; drawTick = reduce ? 0 : clock; T = reduce ? 0 : clock / FPS;
     step();
     // Reduced motion freezes the drawing seed and only redraws when something actually changed.
     if (reduce) { const sig = [mode, S, P, E, zone, lx, kbBand, title, titleP, bandNavP, circleP, tocP, hoverP].join(); if (sig === lastSig && !forceDraw) { if (needDeco) { renderDeco(drawTick); composite(); needDeco = false; } return; } lastSig = sig; }
     draw();
   }
-  function draw() { renderLines(drawTick); renderDeco(drawTick); composite(); needDeco = false; forceDraw = false; }
+  function draw() { const a = performance.now(); renderLines(drawTick); renderDeco(drawTick); composite(); needDeco = false; forceDraw = false; cost += (performance.now() - a - cost) * 0.2; }
   function navHit(x, y) { if (y < 0 || y > 72) return null; return navBoxes.find((b) => x >= b.x && x <= b.x + b.ww) || null; }
   // The canvas is sized in pixels so it always matches the drawing, even while a phone's address bar moves.
   function resize() {

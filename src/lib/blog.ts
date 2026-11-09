@@ -72,6 +72,21 @@ export const getReadingStats = (post: BlogPost) => {
   };
 };
 
+// The post's own description, or the opening of its text when none was written.
+export const getSummary = (post: BlogPost, length = 140) => {
+  if (post.data.description.trim()) return post.data.description.trim();
+  const text = (post.body ?? "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/^\s*(#{1,6}|>|[-*+]|\d+\.)\s+/gm, "")
+    .replace(/[*_`~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return text.length > length ? `${text.slice(0, length).trimEnd()}…` : text;
+};
+
 export const getPostUrl = (post: BlogPost) => `/blog/${post.id}/`;
 
 export const groupPostsByYear = (posts: BlogPost[]) =>

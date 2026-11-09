@@ -1,6 +1,4 @@
 ---
-import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
 import { Image } from "astro:assets";
 import { getCollection } from "astro:content";
 import profilePhoto from "../assets/profile-photo.jpg";
@@ -27,6 +25,7 @@ import {
 } from "../lib/blog";
 import { backgroundStyle } from "../lib/images";
 import { managedNavigation, portalContent } from "../lib/portal-content";
+import { stageVersion } from "../lib/stage";
 import "../styles/global.css";
 import "../styles/blog-features.css";
 import "../styles/string.css";
@@ -45,9 +44,6 @@ type Props = {
   /** Renders the 404 panel, which opens for any address without a portal route. */
   notFound?: boolean;
 };
-
-// Pages caches this file for ten minutes, so its address changes with its content.
-const stageVersion = createHash("sha1").update(readFileSync("public/assets/string-stage.js")).digest("hex").slice(0, 10);
 
 const {
   route = "",
@@ -83,7 +79,7 @@ const tagHref = (tag: string) =>
   })[tag] ?? `search/?q=${encodeURIComponent(tag)}`;
 const canonicalUrl = Astro.site && !notFound ? new URL(Astro.url.pathname, Astro.site) : null;
 const pageTitle = title ? `${title} | ${site.brand.name}` : site.title;
-const shareImage = image ? new URL(image, Astro.site ?? Astro.url) : null;
+const shareImage = new URL(image || withBase("og.png"), Astro.site ?? Astro.url);
 const navigation = portalContent.navigation;
 const tabIndexByNavigationId = new Map(navigation.map((item, index) => [item.id, index]));
 const blogTabIndex = tabIndexByNavigationId.get("blog");
@@ -162,12 +158,22 @@ const searchText = (post: (typeof blogPosts)[number]) =>
     <meta property="og:title" content={pageTitle} />
     <meta property="og:description" content={description} />
     {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-    {shareImage && <meta property="og:image" content={shareImage} />}
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:site_name" content={site.title} />
+    <meta name="twitter:card" content="summary_large_image" />
     {publishedTime && <meta property="article:published_time" content={publishedTime.toISOString()} />}
     {notFound && <meta name="robots" content="noindex" />}
     <title>{pageTitle}</title>
+    <noscript>
+      <style>
+        .string-stage { display: none; }
+        .string-site .string-nav { clip-path: none; display: flex; font-size: 20px; font-style: italic; gap: 28px; height: auto; left: 50%; overflow: visible; top: 22px; transform: translateX(-50%); width: auto; }
+        .string-site .page-heading { clip: auto; height: auto; overflow: visible; position: static; }
+        .string-site .app-shell { padding-top: 56px; pointer-events: auto; }
+      </style>
+    </noscript>
   </head>
-  <body class="string-site" style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-editor-src={editorScriptUrl} data-initial-panel={notFound ? "not-found" : undefined}>
+  <body class="string-site" style={backgroundStyle} data-admin-api={adminApiUrl} data-portal-base={base} data-site-title={site.title} data-site-brand={site.brand.name} data-editor-src={editorScriptUrl} data-initial-panel={notFound ? "not-found" : undefined}>
     <nav class="string-nav" aria-label="Site sections">
       {
         navigation.map((item, index) => (
@@ -182,6 +188,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
       }
     </nav>
     <div class="string-band-hit" aria-hidden="true"></div>
+    <div class="string-band-hit is-bottom" aria-hidden="true"></div>
     <div class="backdrop" aria-hidden="true"></div>
     <div class="soft-wash" aria-hidden="true"></div>
 
@@ -311,7 +318,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
               width={640}
               widths={[320, 640]}
               sizes="(max-width: 980px) 40vw, 240px"
-              loading="eager"
+              loading="lazy"
             />
           </a>
           <h1>{site.profile.name}</h1>
@@ -395,6 +402,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
             class={`page blog-panel ${panelState("blog/").class}`}
             inert={panelState("blog/").inert}
             data-panel="blog"
+            data-title="Blog"
             data-route="blog/"
             data-tab={blogTabIndex}
           >
@@ -449,7 +457,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
 
             {blogPosts.length > 0 && (
               <nav class="string-filters" aria-label="Filter posts">
-                <button type="button" class="is-on" data-filter="">全部</button>
+                <button type="button" class="is-on" data-filter="">all</button>
                 {blogCategories.map((category) => (
                   <button type="button" data-filter={category}>{category}</button>
                 ))}
@@ -512,7 +520,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
                   }),
                 ])
               }
-              <p class="string-empty" hidden>这里还没有字。</p>
+              <p class="string-empty" hidden>Nothing here yet.</p>
             </section>
           </article>
 
@@ -522,6 +530,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
                 class={`page managed-navigation-page ${panelState(`${navigationItem.slug}/`).class}`}
                 inert={panelState(`${navigationItem.slug}/`).inert}
                 data-panel={navigationItem.id}
+                data-title={navigationItem.title}
                 data-route={`${navigationItem.slug}/`}
                 data-tab={tabIndexByNavigationId.get(navigationItem.id)}
                 data-navigation-panel
@@ -555,6 +564,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
                 class={`page detail-page managed-detail-page ${panelState(`${managedPage.route}/`).class}`}
                 inert={panelState(`${managedPage.route}/`).inert}
                 data-panel={`managed-${managedPage.id}`}
+                data-title={managedPage.title}
                 data-route={`${managedPage.route}/`}
                 data-tab={tabIndexByNavigationId.get(managedPage.parentNavigationId)}
                 data-managed-page
@@ -591,6 +601,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
                   class={`page detail-page article-panel ${panelState(postRoute).class}`}
                   inert={panelState(postRoute).inert}
                   data-panel={`post-${post.id}`}
+                  data-title={post.data.title}
                   data-route={postRoute}
                   data-tab={blogTabIndex}
                 >
@@ -657,15 +668,16 @@ const searchText = (post: (typeof blogPosts)[number]) =>
             class={`page detail-page ${panelState("search/").class}`}
             inert={panelState("search/").inert}
             data-panel="search"
+            data-title="Search"
             data-route="search/"
             data-search-root
             data-search-url={withBase("search-data.json")}
             data-base={base}
           >
-            <a class="panel-back" href={withBase()} data-portal-route="">Back to dashboard</a>
+            <a class="panel-back" href={withBase()} data-portal-route="">Back to string</a>
             <div class="page-heading">
               <p>Search</p>
-              <h2>Search blog inside the portal.</h2>
+              <h2>Search the blog.</h2>
             </div>
             <input class="search-box portal-search-box" id="portal-search-box" type="search" placeholder="Type keywords..." autocomplete="off" />
             <section class="search-results" id="portal-search-results" aria-live="polite"></section>
@@ -676,6 +688,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
               class={`page detail-page not-found-page ${panelState(notFoundKey).class}`}
               inert={panelState(notFoundKey).inert}
               data-panel="not-found"
+              data-title="Page not found"
             >
               <div class="page-heading">
                 <p>404</p>
@@ -687,7 +700,7 @@ const searchText = (post: (typeof blogPosts)[number]) =>
                 <input class="search-box" type="search" name="q" placeholder="Search posts…" aria-label="Search posts" />
               </form>
               <nav class="blog-tools" aria-label="Where to go next">
-                <a class="tool-link" href={withBase()}>Dashboard</a>
+                <a class="tool-link" href={withBase()}>Home</a>
                 <a class="tool-link" href={withBase("blog/")}>Blog</a>
                 <a class="tool-link" href={withBase("search/")}>Search</a>
               </nav>
@@ -1284,6 +1297,9 @@ const searchText = (post: (typeof blogPosts)[number]) =>
           panel.inert = !isCurrent;
         });
         observeCurrentPanel(activePanel);
+        // The tab title follows the open panel, as it would on a full page load.
+        const panelTitle = activePanel?.dataset.title;
+        document.title = panelTitle ? `${panelTitle} | ${document.body.dataset.siteBrand}` : document.body.dataset.siteTitle || document.title;
 
         if (pushRoute !== null) {
           const routeUrl = new URL(pushRoute || ".", window.location.origin + basePath);

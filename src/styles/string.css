@@ -12,7 +12,7 @@
   --muted: #6b6861;
   --paper: #fefefc;
   --paper-soft: #f4f2ec;
-  --ash: #9a968d;
+  --ash: #75716a;
   --smoke: #ddd9d0;
   --string-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "SimSun", Georgia, serif;
 }
@@ -46,6 +46,11 @@ body.string-site {
   inset: 0 0 auto;
   position: fixed;
   z-index: 4;
+}
+
+.string-band-hit.is-bottom {
+  height: 46px;
+  inset: auto 0 0;
 }
 
 body.string-home .string-band-hit,
@@ -170,7 +175,7 @@ body.string-home .app-shell {
 .string-site .panel-back {
   background: none;
   border: 0;
-  color: #8a877f;
+  color: var(--ash);
   display: table;
   font-size: 13px;
   margin: 0 0 14px;
@@ -192,7 +197,7 @@ body.string-home .app-shell {
 .string-site .blog-tools .tool-link {
   background: none;
   border: 0;
-  color: #8a877f;
+  color: var(--ash);
   font-size: 13px;
   padding: 0;
 }
@@ -243,7 +248,7 @@ body.string-home .app-shell {
 }
 
 .string-search input::placeholder {
-  color: #a9a59c;
+  color: var(--ash);
   font-style: italic;
 }
 
@@ -310,7 +315,7 @@ body.string-home .app-shell {
 }
 
 .string-site .string-row-meta {
-  color: #a19d94;
+  color: var(--ash);
   font-size: 12px;
 }
 
@@ -321,7 +326,7 @@ body.string-home .app-shell {
 .string-site .post-tags a {
   background: none;
   border: 0;
-  color: #a19d94;
+  color: var(--ash);
   font-size: 12px;
   margin-left: 6px;
   padding: 0;
@@ -751,11 +756,11 @@ body.string-home .app-shell {
   box-shadow: none;
   margin: 0 auto;
   max-width: 780px;
-  padding: 56px 28px 72px;
+  padding: 52px 28px 96px;
 }
 
 .string-plain .back-link {
-  color: #8a877f;
+  color: var(--ash);
   font-size: 13px;
 }
 
@@ -767,11 +772,14 @@ body.string-home .app-shell {
   margin: 18px 0 20px;
 }
 
+/* The label is written in pencil above; this copy stays for screen readers. */
 .string-plain .blog-header p {
-  color: var(--ash);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  clip: rect(0 0 0 0);
+  height: 1px;
   margin: 0;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
 }
 
 .string-plain .blog-header h1 {
@@ -786,5 +794,5 @@ body.string-home .app-shell {
 }
 
 .string-plain .blog-row {
-  border-bottom: 1px solid rgba(42, 42, 45, 0.12);
+  border-bottom: 0;
 }

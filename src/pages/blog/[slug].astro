@@ -1,7 +1,7 @@
 ---
 import { getCollection, render } from "astro:content";
 import Portal from "../../components/Portal.astro";
-import { getImageUrl, isPublished } from "../../lib/blog";
+import { getImageUrl, getSummary, isPublished } from "../../lib/blog";
 
 export async function getStaticPaths() {
   const posts = (await getCollection("blog")).filter(isPublished);
@@ -18,7 +18,7 @@ const image = getImageUrl(post, withBase);
 <Portal
   route={`blog/${post.id}/`}
   title={post.data.title}
-  description={post.data.description}
+  description={getSummary(post)}
   image={image || undefined}
   ogType="article"
   publishedTime={post.data.date}
